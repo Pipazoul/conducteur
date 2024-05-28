@@ -1,0 +1,22 @@
+config:
+    -
+        name: "Manager Node"
+        role: "manager"
+        webui-port: 8080
+        auth:
+            token: "autobot3000"
+    -
+        name: "Worker Node"
+        role: "worker"
+        weight: 1
+        socket: "/var/run/docker.sock"
+    
+    # worker-2:
+    #     name: "Worker Node"
+    #     weight: 2
+    #     role: "worker"
+    #     host: "ssh://127.0.0.1"
+    #     port: 22
+
+
+
