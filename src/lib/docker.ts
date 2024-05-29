@@ -1,13 +1,27 @@
-// @deno-types="npm:@types/docker-modem"
-import Modem from 'npm:docker-modem';
+// @deno-types="npm:@types/dockerode"
+import Docker from 'npm:dockerode';
 
-export async function connect(config: Modem.ConstructorOptions): Promise<Modem>{
-    console.log("Connecting to Docker...");
-    const modem = new Modem(config);
-    return modem;
+export function connect(config: Docker.DockerOptions): Docker {
+    const docker = new Docker(config);
+    return docker;
+}
+
+export function listContainers(docker: Docker): Promise<Docker.ContainerInfo[]> {
+    console.log("Listing containers");
+    docker.listContainers()
+    // return new Promise((resolve) => {
+    //     docker.listContainers((err, containers) => {
+    //         if(err) {
+    //             console.error(err);
+    //             resolve([]);
+    //         }
+    //         resolve(containers);
+    //     });
+    // });
 }
 
 
 export default {
-    connect
+    connect,
+    listContainers
 }

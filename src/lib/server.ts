@@ -30,20 +30,24 @@ export async function parseConfig(config: string): Promise<Array<NodeConfig>> {
 export async function watchNode(node: NodeConfig){
     console.log("Watching node");
     console.log(node);
-    let socket;
+    let client;
     if(node.socket) {
-        socket = docker.connect({
+        client = docker.connect({
             socketPath: node.socket
         });
+        console.log("CLient", client);
+        const containers = await docker.listContainers(client);
+        console.log(containers);
+        
     }
     if(node.host && node.port) {
-        socket = docker.connect({
+        client = docker.connect({
             host: node.host,
             port: node.port
         });
     }
     console.log("Connected to Docker");
-    console.log(socket);
+    console.log(client);
 }
 
 
@@ -58,7 +62,7 @@ export async function start(configPath: string = "./config.yml"): Promise<string
         }
         if(node.role == Role.worker) {
             console.log("Worker node detected");
-            // not awaiting this function because we want to run it in the background
+            // TODO check if : not awaiting this function because we want to run it in the background
             watchNode(node);
         }
     });

@@ -4,14 +4,23 @@
     "specifiers": {
       "npm:commander": "npm:commander@12.1.0",
       "npm:docker-modem": "npm:docker-modem@5.0.3",
+      "npm:dockerode": "npm:dockerode@4.0.2",
       "npm:yaml": "npm:yaml@2.4.2"
     },
     "npm": {
+      "@balena/dockerignore@1.0.2": {
+        "integrity": "sha512-wMue2Sy4GAVTk6Ic4tJVcnfdau+gx2EnG7S+uAEe+TWJFqE4YoWN4/H8MSLj4eYJKxGg26lZwboEniNiNwZQ6Q==",
+        "dependencies": {}
+      },
       "asn1@0.2.6": {
         "integrity": "sha512-ix/FxPn0MDjeyJ7i/yoHGFt/EX6LyNbxSEhPPXODPL+KB0VPk86UYfL0lMdy+KCnv+fmvIzySwaK5COwqVbWTQ==",
         "dependencies": {
           "safer-buffer": "safer-buffer@2.1.2"
         }
+      },
+      "base64-js@1.5.1": {
+        "integrity": "sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==",
+        "dependencies": {}
       },
       "bcrypt-pbkdf@1.0.2": {
         "integrity": "sha512-qeFIXtP4MSoi6NLqO12WfqARWWuCKi2Rn/9hJLEmtB5yTNr9DqFWkJRCf2qShWzPeAMRnOgCrq0sg/KLv5ES9w==",
@@ -19,8 +28,27 @@
           "tweetnacl": "tweetnacl@0.14.5"
         }
       },
+      "bl@4.1.0": {
+        "integrity": "sha512-1W07cM9gS6DcLperZfFSj+bWLtaPGSOHWhPiGzXmvVJbRLdG82sH/Kn8EtW1VqWVA54AKf2h5k5BbnIbwF3h6w==",
+        "dependencies": {
+          "buffer": "buffer@5.7.1",
+          "inherits": "inherits@2.0.4",
+          "readable-stream": "readable-stream@3.6.2"
+        }
+      },
+      "buffer@5.7.1": {
+        "integrity": "sha512-EHcyIPBQ4BSGlvjB16k5KgAJ27CIsHY/2JBmCRReo48y9rQ3MaUzWX3KVlBa4U7MyX02HdVj0K7C3WaB3ju7FQ==",
+        "dependencies": {
+          "base64-js": "base64-js@1.5.1",
+          "ieee754": "ieee754@1.2.1"
+        }
+      },
       "buildcheck@0.0.6": {
         "integrity": "sha512-8f9ZJCUXyT1M35Jx7MkBgmBMo3oHTTBIPLiY9xyL0pl3T5RwcPEY8cUHr5LBNfu/fk6c2T4DJZuVM/8ZZT2D2A==",
+        "dependencies": {}
+      },
+      "chownr@1.1.4": {
+        "integrity": "sha512-jJ0bqzaylmJtVnNgzTeSOs8DPavpbYgEr/b0YL8/2GO3xJEhInFmhKMUnEJQjZumK7KXGFhUy89PrsJWlakBVg==",
         "dependencies": {}
       },
       "commander@12.1.0": {
@@ -49,8 +77,34 @@
           "ssh2": "ssh2@1.15.0"
         }
       },
+      "dockerode@4.0.2": {
+        "integrity": "sha512-9wM1BVpVMFr2Pw3eJNXrYYt6DT9k0xMcsSCjtPvyQ+xa1iPg/Mo3T/gUcwI0B2cczqCeCYRPF8yFYDwtFXT0+w==",
+        "dependencies": {
+          "@balena/dockerignore": "@balena/dockerignore@1.0.2",
+          "docker-modem": "docker-modem@5.0.3",
+          "tar-fs": "tar-fs@2.0.1"
+        }
+      },
+      "end-of-stream@1.4.4": {
+        "integrity": "sha512-+uw1inIHVPQoaVuHzRyXd21icM+cnt4CzD5rW+NC1wjOUSTOs+Te7FOv7AhN7vS9x/oIyhLP5PR1H+phQAHu5Q==",
+        "dependencies": {
+          "once": "once@1.4.0"
+        }
+      },
+      "fs-constants@1.0.0": {
+        "integrity": "sha512-y6OAwoSIf7FyjMIv94u+b5rdheZEjzR63GTyZJm5qh4Bi+2YgwLCcI/fPFZkL5PSixOt6ZNKm+w+Hfp/Bciwow==",
+        "dependencies": {}
+      },
+      "ieee754@1.2.1": {
+        "integrity": "sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==",
+        "dependencies": {}
+      },
       "inherits@2.0.4": {
         "integrity": "sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==",
+        "dependencies": {}
+      },
+      "mkdirp-classic@0.5.3": {
+        "integrity": "sha512-gKLcREMhtuZRwRAfqP3RFW+TK4JqApVBtOIftVgjuABpAtpxhPGaDcfvbhNvD0B8iD1oUr/txX35NjcaY6Ns/A==",
         "dependencies": {}
       },
       "ms@2.1.2": {
@@ -60,6 +114,19 @@
       "nan@2.19.0": {
         "integrity": "sha512-nO1xXxfh/RWNxfd/XPfbIfFk5vgLsAxUR9y5O0cHMJu/AW9U95JLXqthYHjEp+8gQ5p96K9jUp8nbVOxCdRbtw==",
         "dependencies": {}
+      },
+      "once@1.4.0": {
+        "integrity": "sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==",
+        "dependencies": {
+          "wrappy": "wrappy@1.0.2"
+        }
+      },
+      "pump@3.0.0": {
+        "integrity": "sha512-LwZy+p3SFs1Pytd/jYct4wpv49HiYCqd9Rlc5ZVdk0V+8Yzv6jR5Blk3TRmPL1ft69TxP0IMZGJ+WPFU2BFhww==",
+        "dependencies": {
+          "end-of-stream": "end-of-stream@1.4.4",
+          "once": "once@1.4.0"
+        }
       },
       "readable-stream@3.6.2": {
         "integrity": "sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==",
@@ -96,12 +163,35 @@
           "safe-buffer": "safe-buffer@5.2.1"
         }
       },
+      "tar-fs@2.0.1": {
+        "integrity": "sha512-6tzWDMeroL87uF/+lin46k+Q+46rAJ0SyPGz7OW7wTgblI273hsBqk2C1j0/xNadNLKDTUL9BukSjB7cwgmlPA==",
+        "dependencies": {
+          "chownr": "chownr@1.1.4",
+          "mkdirp-classic": "mkdirp-classic@0.5.3",
+          "pump": "pump@3.0.0",
+          "tar-stream": "tar-stream@2.2.0"
+        }
+      },
+      "tar-stream@2.2.0": {
+        "integrity": "sha512-ujeqbceABgwMZxEJnk2HDY2DlnUZ+9oEcb1KzTVfYHio0UE6dG71n60d8D2I4qNvleWrrXpmjpt7vZeF1LnMZQ==",
+        "dependencies": {
+          "bl": "bl@4.1.0",
+          "end-of-stream": "end-of-stream@1.4.4",
+          "fs-constants": "fs-constants@1.0.0",
+          "inherits": "inherits@2.0.4",
+          "readable-stream": "readable-stream@3.6.2"
+        }
+      },
       "tweetnacl@0.14.5": {
         "integrity": "sha512-KXXFFdAbFXY4geFIwoyNK+f5Z1b7swfXABfL7HXCmoIWMKU3dmS26672A4EeQtDzLKy7SXmfBu51JolvEKwtGA==",
         "dependencies": {}
       },
       "util-deprecate@1.0.2": {
         "integrity": "sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==",
+        "dependencies": {}
+      },
+      "wrappy@1.0.2": {
+        "integrity": "sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==",
         "dependencies": {}
       },
       "yaml@2.4.2": {

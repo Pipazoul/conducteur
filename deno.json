@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "dev": "deno run --allow-read --allow-env --watch ./src/main.ts",
+    "dev": "deno run --allow-read --allow-net --allow-env --watch ./src/main.ts",
     "build": "deno compile --allow-read --allow-net --allow-env  --output ./dist/conducteur src/main.ts"
 
   }
