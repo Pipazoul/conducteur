@@ -1,47 +1,47 @@
-import { PrismaClient } from "@prisma/client";
-import YAML from 'yaml'
-import type { NodeConfig } from "../types/config";
-import { Role } from "../types/nodes";
-//import docker from "./docker";
+import YAML from 'npm:yaml'
+import { parse } from "https://deno.land/std@0.98.0/encoding/yaml.ts";
+import { exists } from "https://deno.land/std@0.98.0/fs/mod.ts";
+import type { NodeConfig } from "../types/config.ts";
+import { Role } from "../types/nodes.ts";
+import docker from "./docker.ts";
 
-const prisma = new PrismaClient();
 
 export async function parseConfig(config: string): Promise<Array<NodeConfig>> {
-    const file = Bun.file(config);
-    if (! await file.exists()) {
+    if (!await exists(config)) {
         console.error('Configuration file does not exist.');
-        process.exit(1); // Exit the program with a status code of 1
+        Deno.exit(1); // Exit the program with a status code of 1
     }
     try {
-        const parsed = YAML.parse(await file.text());
-        return parsed.config
+        const text = await Deno.readTextFile(config);
+        const parsed = parse(text) as { config: Array<NodeConfig> };
+        return parsed.config;
     }
     catch (e) {
-        if (e instanceof YAML.YAMLError) {
+        if (e instanceof Error) {
             console.error('Error parsing configuration file.');
             console.error(e.message);
+        } else {
+            console.error('Unknown error occurred.');
         }
-        console.error('Error parsing configuration file.');
-        console.error();
-        process.exit(1);
+        Deno.exit(1);
     }
-
 }
 
 export async function watchNode(node: NodeConfig){
     console.log("Watching node");
+    console.log(node);
     let socket;
-    // if(node.socket) {
-    //     socket = docker.connect({
-    //         socketPath: node.socket
-    //     });
-    // }
-    // if(node.host && node.port) {
-    //     socket = docker.connect({
-    //         host: node.host,
-    //         port: node.port
-    //     });
-    // }
+    if(node.socket) {
+        socket = docker.connect({
+            socketPath: node.socket
+        });
+    }
+    if(node.host && node.port) {
+        socket = docker.connect({
+            host: node.host,
+            port: node.port
+        });
+    }
     console.log("Connected to Docker");
     console.log(socket);
 }

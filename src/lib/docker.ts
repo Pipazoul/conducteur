@@ -1,9 +1,9 @@
-import type Dockerode from 'dockerode';
-import Docker from 'dockerode';
+// @deno-types="npm:@types/docker-modem"
+import Modem from 'npm:docker-modem';
 
-export async function connect(config: Dockerode.DockerOptions): Promise<Modem>{
+export async function connect(config: Modem.ConstructorOptions): Promise<Modem>{
     console.log("Connecting to Docker...");
-    const modem = new Docker(config);
+    const modem = new Modem(config);
     return modem;
 }
 

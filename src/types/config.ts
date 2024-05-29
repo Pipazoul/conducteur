@@ -1,4 +1,4 @@
-import type { Role } from "./nodes";
+import type { Role } from "./nodes.ts";
 
 export interface NodeConfig {
     name: string;
