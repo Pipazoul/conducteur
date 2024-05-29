@@ -1,0 +1,17 @@
+nodes:
+    -
+        name: "Manager Node"
+        role: "manager"
+        webui_port: 8080
+    -
+        name: "Local Worker Node"
+        role: "worker"
+        weight: 1
+    # -
+    #     name: "Distant Worker Node"
+    #     role: "worker"
+    #     weight: 1
+    #     ip: "192.168.1.98"
+    #     rsa_key: "./id_rsa"
+    
+

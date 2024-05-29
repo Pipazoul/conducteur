@@ -4,4 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bollard = "=0.16.1"
 clap = { version = "4.5.4", features = ["derive"] }
+tokio = { version = "1.37.0", features = ["full"] }
+serde = "1.0.203"
+serde_yml = "0.0.9"
+ssh2 = "0.9.4"
+

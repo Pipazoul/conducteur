@@ -1,5 +1,7 @@
 use clap::{Parser, Subcommand};
-mod lib;
+mod server;
+mod types; 
+mod docker;
 
 /// Simple program to greet a person or start a service with a config file
 #[derive(Parser, Debug)]
@@ -12,7 +14,7 @@ struct Cli {
 #[derive(Subcommand, Debug)]
 enum Commands {
 
-    /// Start the service with configuration
+    /// 🚈 Start server
     Start {
         /// Configuration file path
         #[arg(short, long)]
@@ -20,7 +22,8 @@ enum Commands {
     },
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     println!("################### 🚇 Conducteur v0.1.0 ###################");
     print!("\n");
 
@@ -28,6 +31,7 @@ fn main() {
     match &cli.command {
         Commands::Start { config } => {
             // Add your logic here to handle the starting of the service
+            server::start(config).await;
         }
     }
 }
