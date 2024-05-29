@@ -33,7 +33,9 @@ export async function watchNode(node: NodeConfig){
     let client;
     if(node.socket) {
         client = docker.connect({
-            socketPath: node.socket
+            host: "http://localhost:2375",
+            port: 2375
+
         });
         console.log("CLient", client);
         const containers = await docker.listContainers(client);
