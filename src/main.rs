@@ -2,6 +2,8 @@ use clap::{Parser, Subcommand};
 mod server;
 mod types; 
 mod docker;
+mod db;
+mod utils;
 
 /// Simple program to greet a person or start a service with a config file
 #[derive(Parser, Debug)]

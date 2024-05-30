@@ -254,6 +254,7 @@ dependencies = [
  "bollard",
  "clap",
  "serde",
+ "serde_json",
  "serde_yml",
  "ssh2",
  "tokio",
