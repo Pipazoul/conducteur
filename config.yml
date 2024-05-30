@@ -1,9 +1,9 @@
+db: ./db.json
 nodes:
     -
         name: "Manager Node"
         role: "manager"
         webui_port: 8080
-        db: ./db.json
     -
         name: "Local Worker Node"
         role: "worker"
