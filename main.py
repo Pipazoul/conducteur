@@ -55,7 +55,7 @@ def health_check_routine(job_id, container_id, port):
     print("Starting health check routine...")
     container = client.containers.get(container_id)
     start_time = datetime.now()
-    while datetime.now() - start_time < timedelta(minutes=3):
+    while datetime.now() - start_time < timedelta(minutes=4):
         try:
             response = requests.get(f"http://{ssh_host}:{port}/health-check")
             if response.status_code == 200:
@@ -75,6 +75,17 @@ def health_check_routine(job_id, container_id, port):
     container.remove()
     jobs.pop(job_id, None)
     save_jobs()
+
+def stop_containers():
+    # Stop containers that are not using the required image
+    for container in client.containers.list():
+        port_info = container.attrs['NetworkSettings']['Ports']['5000/tcp']
+        if port_info:
+            port = port_info[0]['HostPort']
+            if 6000 <= int(port) <= 6600:
+                container.stop()
+                container.remove()
+                print(f"Stopped container on port {port}")
 
 @app.post("/jobs/")
 async def add_job(image: str):
@@ -107,9 +118,11 @@ async def add_job(image: str):
         }
         save_jobs()
     else:
+        
         if any(job['status'] == 'running' for job in jobs.values()):
             raise HTTPException(status_code=400, detail="Another job is currently running.")
-
+        
+        stop_containers()
         port = random.randint(6000, 6600)
         container = client.containers.run(
             image,
