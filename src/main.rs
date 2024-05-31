@@ -4,6 +4,7 @@ mod types;
 mod docker;
 mod db;
 mod utils;
+mod monitoring;
 
 /// Simple program to greet a person or start a service with a config file
 #[derive(Parser, Debug)]

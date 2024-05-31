@@ -25,6 +25,7 @@ impl Default for Database {
 #[derive(Debug, Serialize, Deserialize)]
 #[derive(Clone)] //
 pub struct Node {
+    pub id: i32,
     pub name: String,
     pub role: String,
     pub webui_port: Option<u16>,

@@ -1,4 +1,4 @@
-use crate::docker;
+use crate::{docker, monitoring};
 use std::time::Duration;
 use tokio::time::sleep; 
 use crate::utils;
@@ -9,7 +9,9 @@ pub async fn watch_node(node: Node, config: Config) {
     loop {
         println!("Watching node: {:?}", node.name);
         let _client = docker::connect(&node); // Use reference here to avoid moving node
-        node::create(&config.db, node.clone()); // Clone node here since it's reused in the loop
+        monitoring::usage(node.clone(), &_client).await; // Clone node here since it's reused in the loop
+        node::update(&config.db, node.clone()); // Clone node here since it's reused in the loop
+
         sleep(Duration::from_secs(5)).await;
     }
 }
