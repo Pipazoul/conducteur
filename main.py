@@ -11,7 +11,9 @@ from docker import DockerClient
 import docker.types
 import dotenv
 from fastapi.requests import Request
-
+from fastapi.responses import JSONResponse
+from fastapi import Header
+from fastapi import BackgroundTasks
 
 dotenv.load_dotenv()
 app = FastAPI()
@@ -51,6 +53,7 @@ def get_container_by_image(image):
 
 def start_or_restart_container(container, image):
     if container.status == "exited":
+        print(f" 🔄 Restarting container {container.id}...")
         stop_containers()
         container.start()
         container.reload()
@@ -59,6 +62,7 @@ def start_or_restart_container(container, image):
 
 
 def stop_containers():
+    print(" 🛑 Stopping all running containers...")
     for container in client.containers.list():
         port_info = container.attrs["NetworkSettings"]["Ports"]["5000/tcp"]
         if port_info:
@@ -68,6 +72,7 @@ def stop_containers():
 
 
 def health_check_routine(job_id, container_id, port):
+    print(f" 💊 Starting health check for job {job_id}...")
     container = client.containers.get(container_id)
     start_time = datetime.now()
     while datetime.now() - start_time < timedelta(minutes=4):
@@ -88,6 +93,7 @@ def health_check_routine(job_id, container_id, port):
 
 @app.post("/jobs/")
 async def add_job(image: str):
+    print(f" 🚀 Adding job for image {image}...")
     container = get_container_by_image(image)
     if container:
         port = start_or_restart_container(container, image)
@@ -118,14 +124,39 @@ class PredictionData(BaseModel):
 
 
 @app.post("/predict")
-async def predict(request: Request):
+async def predict(request: Request, background_tasks: BackgroundTasks, prefer: str = Header(None)):
+    print(f" 🧠 Received prediction request with preference: {prefer}")
     data = await request.json()
     job_response = await add_job(data["image"])
     job_id = job_response["job_id"]
-    return await handle_prediction(job_id, data["input"])
+
+    if prefer == "respond-async":
+        # background_tasks.add_task(
+        #     send_async_request,
+        #     job_id=job_id,
+        #     input=data["input"],
+        #     webhook_url=request.url_for("webhook")
+        #     external_webhook_url=data["webhook_url"]
+        # )
+        webhook_url = "http://192.168.1.62:8000/webhook"
+        external_webhook_url = data["webhook"]
+        handle_prediction(job_id, data["input"], webhook_url=webhook_url, external_webhook_url=external_webhook_url)
+        return {"job_id": job_id, "message": "Prediction in progress. Results will be sent to the webhook URL."}
+    else:
+        # Handle synchronous prediction (as before)
+        return handle_prediction(job_id, data["input"])
 
 
-async def handle_prediction(job_id, input):
+@app.post("/webhook")
+async def webhook(request: Request):
+    print(" 📡 Received webhook request.")
+    # Endpoint to receive prediction results from the model server
+    result = await request.json()
+    # Process the result as necessary, potentially updating job statuses or notifying other services
+    return {"message": "Received prediction result.", "result": result}
+
+def handle_prediction(job_id, input, webhook_url=None, external_webhook_url=None):
+    print(f" 🧠 Handling prediction for job {job_id}...")
     job = jobs[job_id]
     start_time = datetime.now()
     timeout = timedelta(minutes=3)
@@ -135,15 +166,34 @@ async def handle_prediction(job_id, input):
         job = jobs[job_id]
 
     if job["status"] == "predicting":
-        response = await make_prediction(job_id, job["port"], input)
+        response = make_prediction(job_id, job["port"], input, webhook_url, external_webhook_url)
         return response
     else:
         handle_job_failure(job_id, job["status"])
 
 
-async def make_prediction(job_id, port, input):
+def make_prediction(job_id, port, input, webhook_url=None, external_webhook_url=None):
+    print(f" 🧠 Making prediction for job {job_id}...")
     try:
-        response = requests.post(f"http://{ssh_host}:{port}/predictions", json={"input": input})
+        print("webhook_url", webhook_url)
+        print("external_webhook_url", external_webhook_url)
+        if webhook_url and external_webhook_url:
+            print(f" 📡 Forwarding prediction result to external webhook URL: {external_webhook_url}")
+            input["webhook_url"] = external_webhook_url
+            header = {
+                "Content-Type": "application/json",
+                "Prefer": "respond-async"
+            }
+            payload = {
+                "input": input,  # Ensure 'input' is defined elsewhere in your script
+                "webhook": webhook_url,  # This should be the top-level key in the payload
+                "webhook_events_filter": ["completed"]
+            }
+            
+            response = requests.post(f"http://{ssh_host}:{port}/predictions", json=payload, headers=header)
+            return
+        else:
+            response = requests.post(f"http://{ssh_host}:{port}/predictions", json={"input": input})
         if response.status_code == 200:
             jobs.pop(job_id, None)
             save_jobs()
@@ -155,6 +205,7 @@ async def make_prediction(job_id, port, input):
 
 
 def handle_job_failure(job_id, status):
+    print(f" ❌ Job {job_id} failed with status {status}.")
     jobs.pop(job_id, None)
     save_jobs()
     detail = "Job failed during execution." if status == "failed" else "Job timed out or failed."
@@ -163,4 +214,5 @@ def handle_job_failure(job_id, status):
 
 if __name__ == "__main__":
     import uvicorn
+    print(" 🚀 Server running at http://localhost:8000")
     uvicorn.run(app, host="0.0.0.0", port=8000)
