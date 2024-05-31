@@ -152,6 +152,7 @@ async def webhook(request: Request):
     print(" 📡 Received webhook request.")
     # Endpoint to receive prediction results from the model server
     result = await request.json()
+    print(" 📡 Prediction result:", result["input"])
     # Process the result as necessary, potentially updating job statuses or notifying other services
     return {"message": "Received prediction result.", "result": result}
 
@@ -186,7 +187,7 @@ def make_prediction(job_id, port, input, webhook_url=None, external_webhook_url=
             }
             payload = {
                 "input": input,  # Ensure 'input' is defined elsewhere in your script
-                "webhook": webhook_url,  # This should be the top-level key in the payload
+                "webhook": external_webhook_url,  # This should be the top-level key in the payload
                 "webhook_events_filter": ["completed"]
             }
             
