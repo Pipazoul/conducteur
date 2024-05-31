@@ -3,6 +3,7 @@ import time
 import requests
 from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException
+from fastapi import Request
 from docker import DockerClient
 import docker.types
 from threading import Thread
@@ -37,8 +38,6 @@ jobs = {}
 # except FileNotFoundError:
 #     pass
 
-class PredictRequest(BaseModel):
-    image: str
 
 def load_jobs():
     try:
@@ -70,7 +69,7 @@ def health_check_routine(job_id, container_id, port):
 
         except requests.exceptions.RequestException:
             pass
-        time.sleep(30)
+        time.sleep(1)
     container.stop()
     container.remove()
     jobs.pop(job_id, None)
@@ -84,32 +83,36 @@ def stop_containers():
             port = port_info[0]['HostPort']
             if 6000 <= int(port) <= 6600:
                 container.stop()
-                container.remove()
                 print(f"Stopped container on port {port}")
 
 @app.post("/jobs/")
 async def add_job(image: str):
     print("Adding job...")
-
-    # Check if a container with the same image is already running
     existing_container = None
     port = None
-    for container in client.containers.list():
-        container_image = container.attrs['Config']['Image']
-        print(f"Container image: {container_image}")
-        print(f"Image: {image}")
-        if container_image == image:
-            print("Found existing container")
-            print(f"Container image: {container_image}")
-            print(f"Image: {image}")
-            existing_container = container
-            # update the port
-            port = container.attrs['NetworkSettings']['Ports']['5000/tcp'][0]['HostPort']
 
-    # If found, use the existing container's settings
+    # List all containers, including those that are stopped
+    for container in client.containers.list(all=True):
+        container_image = container.attrs['Config']['Image']
+        if container_image == image:
+            print(f"Found matching container with image: {container_image}")
+            existing_container = container
+            if container.status == 'running':
+                port_mappings = container.attrs['NetworkSettings']['Ports']
+                port = port_mappings['5000/tcp'][0]['HostPort'] if '5000/tcp' in port_mappings else None
+                break
+            elif container.status == 'exited':
+                stop_containers()
+                container.start()
+                container.reload()
+                port_mappings = container.attrs['NetworkSettings']['Ports']
+                port = port_mappings['5000/tcp'][0]['HostPort'] if '5000/tcp' in port_mappings else None
+                print(f"Restarted stopped container with image: {image} on port {port}")
+                break
+
     if existing_container:
         job_id = str(existing_container.id)
-        print(f"Using existing container: {job_id}")
+        print(f"Using existing/restarted container: {job_id}")
         jobs[job_id] = {
             'image': image,
             'status': 'running',
@@ -118,7 +121,7 @@ async def add_job(image: str):
         }
         save_jobs()
     else:
-        
+        # If no suitable container is found, create a new one
         if any(job['status'] == 'running' for job in jobs.values()):
             raise HTTPException(status_code=400, detail="Another job is currently running.")
         
@@ -138,6 +141,7 @@ async def add_job(image: str):
             'port': port
         }
         save_jobs()
+    print("port before health check", port)
     Thread(target=health_check_routine, args=(job_id, container.id, port), daemon=True).start()
 
     return {"job_id": job_id}
@@ -146,9 +150,19 @@ async def add_job(image: str):
 async def list_jobs():
     return jobs
 
-@app.get("/predict/")
-@app.get("/predict/")
-async def predict(image: str):
+class PredictionData(BaseModel):
+    image: str
+    input: dict
+
+@app.post("/predict")
+async def predict(request: Request):
+    print("Predicting...")
+    data = await request.json()
+    image = data['image']
+    input = data['input']
+    print(f"Predicting for image: {image}")
+    print(f"Input: {input}")
+
     # Add a new job and start the health check
     job_response = await add_job(image)
     job_id = job_response['job_id']
@@ -166,8 +180,8 @@ async def predict(image: str):
     if job['status'] == 'predicting':
         port = job['port']
         try:
-            # Attempt to get a prediction from the container
-            response = requests.post(f"http://{ssh_host}:{port}/predictions")
+            # Attempt to get a prediction from the container 
+            response = requests.post(f"http://{ssh_host}:{port}/predictions", json={"input": input})
             if response.status_code == 200:
                 # If successful, remove the job and save the jobs state
                 jobs.pop(job_id, None)
