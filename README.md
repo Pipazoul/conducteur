@@ -6,6 +6,13 @@
 - [ ] webhook
 - [ ] check if container is stopped is running and start
 
+## Quickstart
+
+```bash
+docker run --restart=unless-stopped  -p 8080:80 -v /var/run/docker.sock:/var/run/docker.sock 
+-v ./id_rsa:/root/.ssh/id_rsa yassinsiouda/conducteur
+```
+
 ## FAQ
 
 ### Set docker to remote access

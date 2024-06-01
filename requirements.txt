@@ -1,4 +1,4 @@
-docker_py==1.10.6
+docker
 fastapi==0.111.0
 pydantic==1.10.12
 python-dotenv==1.0.1

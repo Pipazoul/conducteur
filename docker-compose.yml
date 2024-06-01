@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  conducteur:
+    image: yassinsiouda/conducteur:latest
+    build: .
+    ports:
+      - "8000:80"
+    env_file:
+      - .env
+    volumes:
+      - ./id_rsa/conducteur:/root/.ssh/id_rsa
+      - ./main.py:/app/main.py

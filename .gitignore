@@ -4,3 +4,4 @@ venv
 .env
 build
 dist
+id_rsa

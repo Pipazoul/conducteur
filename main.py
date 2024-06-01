@@ -14,18 +14,38 @@ from fastapi.requests import Request
 from fastapi.responses import JSONResponse
 from fastapi import Header
 from fastapi import BackgroundTasks
+import subprocess
 
 dotenv.load_dotenv()
 app = FastAPI()
 
 # Load environment variables
 ssh_user = os.getenv("DOCKER_SSH_USER")
-ssh_key_path = os.getenv("DOCKER_SSH_KEY_PATH")
+ssh_key_path = "/root/.ssh/id_rsa"
 ssh_host = os.getenv("DOCKER_SSH_HOST")
+
+
+
+
+def add_ssh_host_key(hostname):
+    print(f" 🔑 Adding SSH host key for {hostname}...")
+    # Adds the SSH host key for the given hostname to the known_hosts file
+    known_hosts_path = "/root/.ssh/known_hosts"
+    subprocess.run(["ssh-keyscan", "-H", hostname], stdout=open(known_hosts_path, "a"))
+
+
+add_ssh_host_key(ssh_host)
+
 client = DockerClient(base_url=f"ssh://{ssh_user}@{ssh_host}" if ssh_key_path else "unix://var/run/docker.sock")
+
+
+
+
+
 
 # Initialize jobs dictionary
 jobs = {}
+
 
 
 def load_jobs():
