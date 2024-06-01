@@ -1,0 +1,30 @@
+db: ./db.json
+
+tokens:
+    -
+        name: "My token"
+        token: "mytoken"
+        scope: [
+            "r8.im/stability-ai/sdxl@sha256:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
+            "another docker_image"
+        ]
+    -
+        name: "Another token"
+        token: "anotherTOken"
+        scope: [
+            "another docker_image"
+        ]
+nodes:
+    -
+        id: 1
+        name: "Local Worker Node"
+        role: "worker"
+        weight: 1
+    # -
+    #     name: "Distant Worker Node"
+    #     role: "worker"
+    #     weight: 1
+    #     ip: "192.168.1.98"
+    #     rsa_key: "./id_rsa"
+    
+

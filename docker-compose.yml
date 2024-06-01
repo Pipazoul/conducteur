@@ -10,3 +10,4 @@ services:
     volumes:
       - ./id_rsa/conducteur:/root/.ssh/id_rsa
       - ./main.py:/app/main.py
+      - ./config.yaml:/app/config.yaml

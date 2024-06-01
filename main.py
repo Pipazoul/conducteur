@@ -5,20 +5,21 @@ import requests
 import time
 from datetime import datetime, timedelta
 from threading import Thread
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, BackgroundTasks, Request
+from fastapi import Depends, HTTPException, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from docker import DockerClient
 import docker.types
 import dotenv
-from fastapi.requests import Request
-from fastapi.responses import JSONResponse
-from fastapi import Header
-from fastapi import BackgroundTasks
 import subprocess
+import yaml
 
 dotenv.load_dotenv()
 app = FastAPI()
 
+# Define the auth_scheme using HTTPBearer
+auth_scheme = HTTPBearer()
 # Load environment variables
 ssh_user = os.getenv("DOCKER_SSH_USER")
 ssh_key_path = "/root/.ssh/id_rsa"
@@ -47,6 +48,29 @@ client = DockerClient(base_url=f"ssh://{ssh_user}@{ssh_host}" if ssh_key_path el
 jobs = {}
 
 
+def load_config():
+    with open("config.yaml", "r") as file:
+        return yaml.safe_load(file)
+
+config = load_config()
+
+
+def authenticate(credentials: HTTPAuthorizationCredentials = Depends(auth_scheme), request: str = None):
+    token = credentials.credentials
+    print(f" 🔒 Authenticating token {token}")
+    for entry in config['tokens']:
+        if token == entry['token']:
+            return True
+    raise HTTPException(status_code=403, detail="Not Authorized")
+
+def verify_scope(token: str,image: str):
+    for entry in config['tokens']:
+        print(f" 🔒 Verifying scope for token {token} and image {image}")
+        if token == entry['token']:
+            print(f" ### 🔒 Verifying scope for token {token} and image {image}")
+            if image in entry['scope']:
+                return True
+    raise HTTPException(status_code=403, detail="Not Authorized")
 
 def load_jobs():
     try:
@@ -148,11 +172,21 @@ class PredictionData(BaseModel):
 
 
 @app.post("/predict")
-async def predict(request: Request, background_tasks: BackgroundTasks, prefer: str = Header(None)):
+async def predict(
+    request: Request, 
+    background_tasks: BackgroundTasks, 
+    credentials: HTTPAuthorizationCredentials = Security(authenticate),
+    prefer: str = Header(None)):
     print(f" 🧠 Received prediction request with preference: {prefer}")
     data = await request.json()
     job_response = await add_job(data["image"])
     job_id = job_response["job_id"]
+
+    token = request.headers.get("Authorization").split(" ")[1]
+    scope = verify_scope(token, data["image"])
+    if not scope:
+        raise HTTPException(status_code=403, detail="Not Authorized in scope")
+
 
     if prefer == "respond-async":
 
@@ -218,10 +252,13 @@ def make_prediction(job_id, port, input, webhook_url=None, external_webhook_url=
             save_jobs()
             return response.json()
         else:
+            print("response", response)
             raise HTTPException(status_code=500)
     except requests.exceptions.RequestException as e:
+        print(f" ❌ Prediction failed for job {job_id}.")
+        print(e)
         raise HTTPException(status_code=500, detail=str(e))
-
+    
 
 def handle_job_failure(job_id, status):
     print(f" ❌ Job {job_id} failed with status {status}.")
