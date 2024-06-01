@@ -84,11 +84,15 @@ def start_or_restart_container(container, image):
 def stop_containers():
     print(" 🛑 Stopping all running containers...")
     for container in client.containers.list():
-        port_info = container.attrs["NetworkSettings"]["Ports"]["5000/tcp"]
-        if port_info:
-            port = port_info[0]["HostPort"]
-            if 6000 <= int(port) <= 6600:
+        # Check if '5000/tcp' key exists in the Ports dictionary
+        ports = container.attrs["NetworkSettings"]["Ports"]
+        if '5000/tcp' in ports and ports['5000/tcp'] is not None:
+            port_info = ports['5000/tcp'][0]
+            if port_info and 6000 <= int(port_info["HostPort"]) <= 6600:
                 container.stop()
+        else:
+            print(f"No '5000/tcp' port mapping found for container {container.id}")
+
 
 
 def health_check_routine(job_id, container_id, port):
