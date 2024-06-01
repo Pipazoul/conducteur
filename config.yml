@@ -1,22 +1,15 @@
-config:
+db: ./db.json
+nodes:
     -
-        name: "Manager Node"
-        role: "manager"
-        webui-port: 8080
-        auth:
-            token: "autobot3000"
-    -
-        name: "Worker Node"
+        id: 1
+        name: "Local Worker Node"
         role: "worker"
         weight: 1
-        socket: "/var/run/docker.sock"
-    
-    # worker-2:
-    #     name: "Worker Node"
-    #     weight: 2
+    # -
+    #     name: "Distant Worker Node"
     #     role: "worker"
-    #     host: "ssh://127.0.0.1"
-    #     port: 22
-
-
+    #     weight: 1
+    #     ip: "192.168.1.98"
+    #     rsa_key: "./id_rsa"
+    
 

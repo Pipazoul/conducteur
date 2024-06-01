@@ -1,0 +1,6 @@
+/target
+jobs.json
+venv
+.env
+build
+dist
