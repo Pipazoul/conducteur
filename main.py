@@ -131,13 +131,7 @@ async def predict(request: Request, background_tasks: BackgroundTasks, prefer: s
     job_id = job_response["job_id"]
 
     if prefer == "respond-async":
-        # background_tasks.add_task(
-        #     send_async_request,
-        #     job_id=job_id,
-        #     input=data["input"],
-        #     webhook_url=request.url_for("webhook")
-        #     external_webhook_url=data["webhook_url"]
-        # )
+
         webhook_url = "http://192.168.1.62:8000/webhook"
         external_webhook_url = data["webhook"]
         handle_prediction(job_id, data["input"], webhook_url=webhook_url, external_webhook_url=external_webhook_url)
