@@ -6,3 +6,4 @@ build
 dist
 id_rsa
 config.yaml
+predictions.json

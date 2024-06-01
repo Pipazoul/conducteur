@@ -46,7 +46,7 @@ jobs = {}
 
 
 def load_config():
-    with open("config.yaml", "r") as file:
+    with open("../data/config.yaml", "r") as file:
         return yaml.safe_load(file)
 
 config = load_config()
@@ -54,7 +54,6 @@ config = load_config()
 
 def authenticate(credentials: HTTPAuthorizationCredentials = Depends(auth_scheme), request: str = None):
     token = credentials.credentials
-    print(f" 🔒 Authenticating token {token}")
     for entry in config['tokens']:
         if token == entry['token']:
             current_prediction['user'] = entry['name']  # Assuming 'name' field in tokens
@@ -72,7 +71,7 @@ def verify_scope(token: str,image: str):
 
 def load_jobs():
     try:
-        with open("jobs.json", "r") as file:
+        with open("../data/jobs.json", "r") as file:
             return json.load(file)
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
@@ -81,19 +80,19 @@ def load_jobs():
 jobs = load_jobs()
 
 def save_jobs():
-    with open("jobs.json", "w") as file:
+    with open("../data/jobs.json", "w") as file:
         json.dump(jobs, file, indent=4)
 
 def update_prediction_file():
     try:
-        with open("predictions.json", "r") as file:
+        with open("../data/predictions.json", "r") as file:
             predictions = json.load(file)
     except (FileNotFoundError, json.JSONDecodeError):
         predictions = []
     
     predictions.append(current_prediction.copy())
     
-    with open("predictions.json", "w") as file:
+    with open("../data/predictions.json", "w") as file:
         json.dump(predictions, file, indent=4)
 
 
@@ -223,6 +222,14 @@ async def webhook(request: Request):
     # Process the result as necessary, potentially updating job statuses or notifying other services
     return {"message": "Received prediction result.", "result": result}
 
+@app.get("/predictions/")
+async def list_predictions():
+    try:
+        with open("../data/predictions.json", "r") as file:
+            return json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
 def handle_prediction(job_id, input, webhook_url=None, external_webhook_url=None):
     print(f" 🧠 Handling prediction for job {job_id}...")
     job = jobs[job_id]
@@ -290,6 +297,8 @@ def handle_job_failure(job_id, status):
     print(f" ❌ Job {job_id} failed with status {status}.")
     jobs.pop(job_id, None)
     save_jobs()
+    current_prediction["status"] = "failed"
+    update_prediction_file()
     detail = "Job failed during execution." if status == "failed" else "Job timed out or failed."
     raise HTTPException(status_code=408, detail=detail)
 
