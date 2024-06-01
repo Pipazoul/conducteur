@@ -24,7 +24,8 @@ auth_scheme = HTTPBearer()
 ssh_user = os.getenv("DOCKER_SSH_USER")
 ssh_key_path = "/root/.ssh/id_rsa"
 ssh_host = os.getenv("DOCKER_SSH_HOST")
-
+# Prediction object to store current prediction details
+current_prediction = {}
 
 
 
@@ -38,10 +39,6 @@ def add_ssh_host_key(hostname):
 add_ssh_host_key(ssh_host)
 
 client = DockerClient(base_url=f"ssh://{ssh_user}@{ssh_host}" if ssh_key_path else "unix://var/run/docker.sock")
-
-
-
-
 
 
 # Initialize jobs dictionary
@@ -60,6 +57,7 @@ def authenticate(credentials: HTTPAuthorizationCredentials = Depends(auth_scheme
     print(f" 🔒 Authenticating token {token}")
     for entry in config['tokens']:
         if token == entry['token']:
+            current_prediction['user'] = entry['name']  # Assuming 'name' field in tokens
             return True
     raise HTTPException(status_code=403, detail="Not Authorized")
 
@@ -82,10 +80,21 @@ def load_jobs():
 
 jobs = load_jobs()
 
-
 def save_jobs():
     with open("jobs.json", "w") as file:
         json.dump(jobs, file, indent=4)
+
+def update_prediction_file():
+    try:
+        with open("predictions.json", "r") as file:
+            predictions = json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        predictions = []
+    
+    predictions.append(current_prediction.copy())
+    
+    with open("predictions.json", "w") as file:
+        json.dump(predictions, file, indent=4)
 
 
 def get_container_by_image(image):
@@ -187,6 +196,12 @@ async def predict(
     if not scope:
         raise HTTPException(status_code=403, detail="Not Authorized in scope")
 
+     # Initialize current prediction details
+    current_prediction.update({
+        "image": data["image"],
+        "status": "pending",  # Initial status
+        "started": str(datetime.now()),
+    })
 
     if prefer == "respond-async":
 
@@ -250,11 +265,22 @@ def make_prediction(job_id, port, input, webhook_url=None, external_webhook_url=
         if response.status_code == 200:
             jobs.pop(job_id, None)
             save_jobs()
+            results = response.json()
+            current_prediction.update({
+                "status": results["status"],
+                "finished": str(datetime.now()),
+                "duration": results["metrics"]["predict_time"],
+            })
+            update_prediction_file()
             return response.json()
         else:
             print("response", response)
+            current_prediction["status"] = "failed"
+            update_prediction_file()
             raise HTTPException(status_code=500)
     except requests.exceptions.RequestException as e:
+        current_prediction["status"] = "failed"
+        update_prediction_file()
         print(f" ❌ Prediction failed for job {job_id}.")
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
