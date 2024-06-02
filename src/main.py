@@ -8,6 +8,7 @@ from threading import Thread
 from fastapi import FastAPI, HTTPException, Header, BackgroundTasks, Request
 from fastapi import Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from docker import DockerClient
 import docker.types
@@ -24,8 +25,18 @@ auth_scheme = HTTPBearer()
 ssh_user = os.getenv("DOCKER_SSH_USER")
 ssh_key_path = "/root/.ssh/id_rsa"
 ssh_host = os.getenv("DOCKER_SSH_HOST")
+cors_origins = os.getenv("API_CORS_ORIGIN").split(",")
+
 # Prediction object to store current prediction details
 current_prediction = {}
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 
@@ -276,7 +287,7 @@ def make_prediction(job_id, port, input, webhook_url=None, external_webhook_url=
             current_prediction.update({
                 "status": results["status"],
                 "finished": str(datetime.now()),
-                "duration": results["metrics"]["predict_time"],
+                "duration": results["metrics"]["predict_time"] 
             })
             update_prediction_file()
             return response.json()
@@ -284,7 +295,7 @@ def make_prediction(job_id, port, input, webhook_url=None, external_webhook_url=
             print("response", response)
             current_prediction["status"] = "failed"
             update_prediction_file()
-            raise HTTPException(status_code=500)
+            return response.json()
     except requests.exceptions.RequestException as e:
         current_prediction["status"] = "failed"
         update_prediction_file()

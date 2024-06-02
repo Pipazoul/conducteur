@@ -9,4 +9,4 @@ services:
       - .env
     volumes:
       - ./id_rsa/conducteur:/root/.ssh/id_rsa
-       - ./data:/app/data
+      - ./data:/app/data
