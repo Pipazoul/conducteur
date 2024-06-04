@@ -5,32 +5,84 @@ import requests
 import time
 from datetime import datetime, timedelta
 from threading import Thread
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, BackgroundTasks, Request
+from fastapi import Depends, HTTPException, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from docker import DockerClient
 import docker.types
 import dotenv
-from fastapi.requests import Request
-from fastapi.responses import JSONResponse
-from fastapi import Header
-from fastapi import BackgroundTasks
+import subprocess
+import yaml
 
 dotenv.load_dotenv()
 app = FastAPI()
 
+# Define the auth_scheme using HTTPBearer
+auth_scheme = HTTPBearer()
 # Load environment variables
 ssh_user = os.getenv("DOCKER_SSH_USER")
-ssh_key_path = os.getenv("DOCKER_SSH_KEY_PATH")
+ssh_key_path = "/root/.ssh/id_rsa"
 ssh_host = os.getenv("DOCKER_SSH_HOST")
+cors_origins = os.getenv("API_CORS_ORIGIN").split(",")
+
+# Prediction object to store current prediction details
+current_prediction = {}
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+
+def add_ssh_host_key(hostname):
+    print(f" 🔑 Adding SSH host key for {hostname}...")
+    # Adds the SSH host key for the given hostname to the known_hosts file
+    known_hosts_path = "/root/.ssh/known_hosts"
+    subprocess.run(["ssh-keyscan", "-H", hostname], stdout=open(known_hosts_path, "a"))
+
+
+add_ssh_host_key(ssh_host)
+
 client = DockerClient(base_url=f"ssh://{ssh_user}@{ssh_host}" if ssh_key_path else "unix://var/run/docker.sock")
+
 
 # Initialize jobs dictionary
 jobs = {}
 
 
+def load_config():
+    with open("../data/config.yaml", "r") as file:
+        return yaml.safe_load(file)
+
+config = load_config()
+
+
+def authenticate(credentials: HTTPAuthorizationCredentials = Depends(auth_scheme), request: str = None):
+    token = credentials.credentials
+    for entry in config['tokens']:
+        if token == entry['token']:
+            current_prediction['user'] = entry['name']  # Assuming 'name' field in tokens
+            return True
+    raise HTTPException(status_code=403, detail="Not Authorized")
+
+def verify_scope(token: str,image: str):
+    for entry in config['tokens']:
+        print(f" 🔒 Verifying scope for token {token} and image {image}")
+        if token == entry['token']:
+            print(f" ### 🔒 Verifying scope for token {token} and image {image}")
+            if image in entry['scope']:
+                return True
+    raise HTTPException(status_code=403, detail="Not Authorized")
+
 def load_jobs():
     try:
-        with open("jobs.json", "r") as file:
+        with open("../data/jobs.json", "r") as file:
             return json.load(file)
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
@@ -38,10 +90,21 @@ def load_jobs():
 
 jobs = load_jobs()
 
-
 def save_jobs():
-    with open("jobs.json", "w") as file:
+    with open("../data/jobs.json", "w") as file:
         json.dump(jobs, file, indent=4)
+
+def update_prediction_file():
+    try:
+        with open("../data/predictions.json", "r") as file:
+            predictions = json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        predictions = []
+    
+    predictions.append(current_prediction.copy())
+    
+    with open("../data/predictions.json", "w") as file:
+        json.dump(predictions, file, indent=4)
 
 
 def get_container_by_image(image):
@@ -64,11 +127,15 @@ def start_or_restart_container(container, image):
 def stop_containers():
     print(" 🛑 Stopping all running containers...")
     for container in client.containers.list():
-        port_info = container.attrs["NetworkSettings"]["Ports"]["5000/tcp"]
-        if port_info:
-            port = port_info[0]["HostPort"]
-            if 6000 <= int(port) <= 6600:
+        # Check if '5000/tcp' key exists in the Ports dictionary
+        ports = container.attrs["NetworkSettings"]["Ports"]
+        if '5000/tcp' in ports and ports['5000/tcp'] is not None:
+            port_info = ports['5000/tcp'][0]
+            if port_info and 6000 <= int(port_info["HostPort"]) <= 6600:
                 container.stop()
+        else:
+            print(f"No '5000/tcp' port mapping found for container {container.id}")
+
 
 
 def health_check_routine(job_id, container_id, port):
@@ -124,11 +191,27 @@ class PredictionData(BaseModel):
 
 
 @app.post("/predict")
-async def predict(request: Request, background_tasks: BackgroundTasks, prefer: str = Header(None)):
+async def predict(
+    request: Request, 
+    background_tasks: BackgroundTasks, 
+    credentials: HTTPAuthorizationCredentials = Security(authenticate),
+    prefer: str = Header(None)):
     print(f" 🧠 Received prediction request with preference: {prefer}")
     data = await request.json()
     job_response = await add_job(data["image"])
     job_id = job_response["job_id"]
+
+    token = request.headers.get("Authorization").split(" ")[1]
+    scope = verify_scope(token, data["image"])
+    if not scope:
+        raise HTTPException(status_code=403, detail="Not Authorized in scope")
+
+     # Initialize current prediction details
+    current_prediction.update({
+        "image": data["image"],
+        "status": "pending",  # Initial status
+        "started": str(datetime.now()),
+    })
 
     if prefer == "respond-async":
 
@@ -149,6 +232,14 @@ async def webhook(request: Request):
     print(" 📡 Prediction result:", result["input"])
     # Process the result as necessary, potentially updating job statuses or notifying other services
     return {"message": "Received prediction result.", "result": result}
+
+@app.get("/predictions/")
+async def list_predictions():
+    try:
+        with open("../data/predictions.json", "r") as file:
+            return json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
 
 def handle_prediction(job_id, input, webhook_url=None, external_webhook_url=None):
     print(f" 🧠 Handling prediction for job {job_id}...")
@@ -192,17 +283,33 @@ def make_prediction(job_id, port, input, webhook_url=None, external_webhook_url=
         if response.status_code == 200:
             jobs.pop(job_id, None)
             save_jobs()
+            results = response.json()
+            current_prediction.update({
+                "status": results["status"],
+                "finished": str(datetime.now()),
+                "duration": results["metrics"]["predict_time"] 
+            })
+            update_prediction_file()
             return response.json()
         else:
-            raise HTTPException(status_code=500)
+            print("response", response)
+            current_prediction["status"] = "failed"
+            update_prediction_file()
+            return response.json()
     except requests.exceptions.RequestException as e:
+        current_prediction["status"] = "failed"
+        update_prediction_file()
+        print(f" ❌ Prediction failed for job {job_id}.")
+        print(e)
         raise HTTPException(status_code=500, detail=str(e))
-
+    
 
 def handle_job_failure(job_id, status):
     print(f" ❌ Job {job_id} failed with status {status}.")
     jobs.pop(job_id, None)
     save_jobs()
+    current_prediction["status"] = "failed"
+    update_prediction_file()
     detail = "Job failed during execution." if status == "failed" else "Job timed out or failed."
     raise HTTPException(status_code=408, detail=detail)
 
