@@ -9,5 +9,13 @@ services:
       - .env
     volumes:
       - ./id_rsa/conducteur:/root/.ssh/id_rsa
-      - ./src/main.py:/app/src/main.py
+      - ./src/:/app/src/
       - ./data:/app/data
+  # dashboard:
+  #   build: ./dashboard
+  #   ports:
+  #     - "5173:5173"
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - ./dashboard/src:/app/src

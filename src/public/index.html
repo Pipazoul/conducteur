@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" href="./favicon.png" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		
+		<link href="./_app/immutable/assets/0.ToSJGubA.css" rel="stylesheet">
+		<link href="./_app/immutable/assets/2.D3VZPgSt.css" rel="stylesheet">
+		<link rel="modulepreload" href="./_app/immutable/entry/start.Dc6CoTT1.js">
+		<link rel="modulepreload" href="./_app/immutable/chunks/entry.DGXH9B2a.js">
+		<link rel="modulepreload" href="./_app/immutable/chunks/scheduler.CNCAFtj5.js">
+		<link rel="modulepreload" href="./_app/immutable/entry/app.BFGpQXv5.js">
+		<link rel="modulepreload" href="./_app/immutable/chunks/index.DOxe3rQP.js">
+		<link rel="modulepreload" href="./_app/immutable/nodes/0.D21fQPFt.js">
+		<link rel="modulepreload" href="./_app/immutable/nodes/2.Dac_AK5s.js">
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">  <section class="p-4"><div class="flex justify-end absolute right-4 top-4" data-svelte-h="svelte-1g5f8z2"><button class="btn" onclick="token_modal.showModal()">🔑</button></div> <h1 class="text-2xl uppercase font-bold mb-4" data-svelte-h="svelte-40aoh8">🚊 Conducteur Stats</h1> <div class="flex space-x-4 pb-4"><div><p data-svelte-h="svelte-7nen8i">Filter by user</p> <select class="select select-bordered w-full max-w-xs"><option data-svelte-h="svelte-12mw18w">All</option></select></div> <div><p data-svelte-h="svelte-12bfio7">Filter by duration</p> <select class="select select-bordered w-full max-w-xs"><option value="5min">5min</option><option value="15min">15min</option><option value="30min">30min</option><option value="1h">1h</option><option value="2h">2h</option><option value="4h">4h</option><option value="6h">6h</option><option value="12h">12h</option><option value="24h">24h</option></select></div></div> <div><p data-svelte-h="svelte-qdsr2u">Loading...</p></div>  <dialog id="token_modal" class="modal"><div class="modal-box flex flex-col justify-center"><h3 class="font-bold text-lg" data-svelte-h="svelte-1712wxb">Enter your token</h3> <div class="space-x-2 mt-2"><input class="input input-bordered w-full max-w-xs" type="text" value=""> <button class="btn" data-svelte-h="svelte-qh1fuu">Submit</button></div></div> <form method="dialog" class="modal-backdrop" data-svelte-h="svelte-y3fz8w"><button>close</button></form></dialog></section> 
+			
+			<script>
+				{
+					__sveltekit_1g6px1y = {
+						base: new URL(".", location).pathname.slice(0, -1)
+					};
+
+					const element = document.currentScript.parentElement;
+
+					const data = [null,null];
+
+					Promise.all([
+						import("./_app/immutable/entry/start.Dc6CoTT1.js"),
+						import("./_app/immutable/entry/app.BFGpQXv5.js")
+					]).then(([kit, app]) => {
+						kit.start(app, element, {
+							node_ids: [0, 2],
+							data,
+							form: null,
+							error: null
+						});
+					});
+				}
+			</script>
+		</div>
+	</body>
+</html>
