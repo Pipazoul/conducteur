@@ -12,7 +12,7 @@
       finished: string; // YYYY-MM-DD HH:MM:SS
       duration: number;
     }
-  
+    let baseDomain = $page.base;
     let predictions: Prediction[] = [];
     let filteredPredictions: Prediction[] = [];
     let filterDuration = '6h'; // Default filter
@@ -52,7 +52,7 @@
         const headers = new Headers();
         headers.set("Authorization", `Bearer ${token}`);
         //const response = await fetch("http://localhost:8000/predictions", {
-        const response = await fetch("/predictions", {
+        const response = await fetch("/predictions/", {
             headers,
         });
 
@@ -167,6 +167,7 @@
           </Svg>
           <Tooltip header={(data) => data.user} let:data>
             <TooltipItem label="User" value={data.user} />
+            <TooltipItem label="Date" value={data.finished} />
             <TooltipItem label="duration" value={data.duration} />
             <TooltipItem label="Status" value={data.status} />
           </Tooltip>

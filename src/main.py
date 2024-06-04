@@ -238,7 +238,8 @@ async def webhook(request: Request):
     # Process the result as necessary, potentially updating job statuses or notifying other services
     return {"message": "Received prediction result.", "result": result}
 
-@app.get("/predictions/")
+
+@app.get("/predictions/",include_in_schema=False)
 async def list_predictions(
     credentials: HTTPAuthorizationCredentials = Security(authenticate),
 ):
