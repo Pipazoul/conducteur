@@ -6,6 +6,8 @@ import time
 from datetime import datetime, timedelta
 from threading import Thread
 from fastapi import FastAPI, HTTPException, Header, BackgroundTasks, Request
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi import Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,6 +28,9 @@ ssh_user = os.getenv("DOCKER_SSH_USER")
 ssh_key_path = "/root/.ssh/id_rsa"
 ssh_host = os.getenv("DOCKER_SSH_HOST")
 cors_origins = os.getenv("API_CORS_ORIGIN").split(",")
+# Define our static folder, where will be our svelte build later
+app.mount("/dashboard", StaticFiles(directory="public"), name="dashboard")
+app.mount("/_app", StaticFiles(directory="public/_app"), name="_app")
 
 # Prediction object to store current prediction details
 current_prediction = {}
@@ -76,7 +81,7 @@ def verify_scope(token: str,image: str):
         print(f" 🔒 Verifying scope for token {token} and image {image}")
         if token == entry['token']:
             print(f" ### 🔒 Verifying scope for token {token} and image {image}")
-            if image in entry['scope']:
+            if image in entry['scope'] or "*" in entry['scope']:
                 return True
     raise HTTPException(status_code=403, detail="Not Authorized")
 
@@ -234,13 +239,26 @@ async def webhook(request: Request):
     return {"message": "Received prediction result.", "result": result}
 
 @app.get("/predictions/")
-async def list_predictions():
+async def list_predictions(
+    credentials: HTTPAuthorizationCredentials = Security(authenticate),
+):
     try:
         with open("../data/predictions.json", "r") as file:
             return json.load(file)
     except (FileNotFoundError, json.JSONDecodeError):
         return []
 
+
+
+# Simply the root will return our Svelte build
+@app.get("/dashboard", response_class=FileResponse)
+async def main():
+    return "public/index.html"
+
+ # _app/ will return our Svelte build
+@app.get("/dashboard/_app/{path}", response_class=FileResponse)
+async def main(path):
+    return "public/_app/" + path
 def handle_prediction(job_id, input, webhook_url=None, external_webhook_url=None):
     print(f" 🧠 Handling prediction for job {job_id}...")
     job = jobs[job_id]
