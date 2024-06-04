@@ -1,6 +1,11 @@
 # Use an official Python runtime as a parent image
 FROM python:3.10-slim
 
+# Set the timezone
+ENV TZ=Europe/Paris
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+
 # install ssh-keyscan
 RUN apt-get update && apt-get install -y openssh-client
 
