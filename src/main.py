@@ -18,6 +18,7 @@ import dotenv
 import subprocess
 import yaml
 
+
 dotenv.load_dotenv()
 app = FastAPI()
 
@@ -205,6 +206,7 @@ async def predict(
     data = await request.json()
     job_response = await add_job(data["image"])
     job_id = job_response["job_id"]
+    returnOpenAPI = data["openapi"] if "openapi" in data else False
 
     token = request.headers.get("Authorization").split(" ")[1]
     scope = verify_scope(token, data["image"])
@@ -224,6 +226,13 @@ async def predict(
         external_webhook_url = data["webhook"]
         handle_prediction(job_id, data["input"], webhook_url=webhook_url, external_webhook_url=external_webhook_url)
         return {"job_id": job_id, "message": "Prediction in progress. Results will be sent to the webhook URL."}
+    print("returnOpenAPI", returnOpenAPI)
+    if returnOpenAPI:
+        openapi_spec = get_openapi(job_id)
+        if openapi_spec:
+            return openapi_spec
+        else:
+            return json.JSONResponse(status_code=500, content={"message": "Failed to retrieve OpenAPI specification."})
     else:
         # Handle synchronous prediction (as before)
         return handle_prediction(job_id, data["input"])
@@ -275,6 +284,33 @@ def handle_prediction(job_id, input, webhook_url=None, external_webhook_url=None
         return response
     else:
         handle_job_failure(job_id, job["status"])
+
+
+def get_openapi(job_id):
+    """
+    Fetch the OpenAPI specification for the server associated with a given job.
+    Assumes that the server provides its OpenAPI specification at /openapi.json endpoint.
+    """
+    job = jobs.get(job_id)
+    while job["status"] == "running":
+        time.sleep(0.2)
+        job = jobs.get(job_id)
+
+    if job and job["status"] == "predicting":
+        try:
+            port = job["port"]
+            response = requests.get(f"http://{ssh_host}:{port}/openapi.json")
+            if response.status_code == 200:
+                return response.json()  # Return the OpenAPI specification as a Python dictionary
+            else:
+                print("Failed to retrieve OpenAPI specification: HTTP Status", response.status_code)
+        except requests.exceptions.RequestException as e:
+            print("Failed to connect to the server to retrieve OpenAPI specification:", str(e))
+    else:
+        print("Job is not in a predicting state or does not exist.")
+
+    return None  # Return None if the specification could not be retrieved or if the job is not ready
+
 
 
 def make_prediction(job_id, port, input, webhook_url=None, external_webhook_url=None):
