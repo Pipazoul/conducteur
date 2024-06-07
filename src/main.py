@@ -167,13 +167,19 @@ def health_check_routine(job_id, container_id, port):
 @app.post("/jobs/")
 async def add_job(image: str):
     print(f" 🚀 Adding job for image {image}...")
+    
+    # Check if any job is currently running or exists
+    if jobs:
+        # Option 2: Stop and remove the existing job
+        stop_containers()
+        jobs.clear()
+        save_jobs()
+
     container = get_container_by_image(image)
     if container:
         port = start_or_restart_container(container, image)
         job_id = str(container.id)
     else:
-        if any(job["status"] == "running" for job in jobs.values()):
-            raise HTTPException(status_code=400, detail="Another job is currently running.")
         stop_containers()
         port = random.randint(6000, 6600)
         container = client.containers.run(image, detach=True, ports={"5000/tcp": port}, device_requests=[docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])])
@@ -184,7 +190,6 @@ async def add_job(image: str):
 
     Thread(target=health_check_routine, args=(job_id, container.id, port), daemon=True).start()
     return {"job_id": job_id}
-
 
 @app.get("/jobs/")
 async def list_jobs():
