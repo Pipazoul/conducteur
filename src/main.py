@@ -306,6 +306,9 @@ def get_openapi(job_id):
             port = job["port"]
             response = requests.get(f"http://{ssh_host}:{port}/openapi.json")
             if response.status_code == 200:
+                # remove the job from the list
+                jobs.pop(job_id, None)
+                save_jobs()
                 return response.json()  # Return the OpenAPI specification as a Python dictionary
             else:
                 print("Failed to retrieve OpenAPI specification: HTTP Status", response.status_code)
