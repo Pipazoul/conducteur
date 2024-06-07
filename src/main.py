@@ -326,30 +326,35 @@ def make_prediction(job_id, port, input, webhook_url=None, external_webhook_url=
                 "Prefer": "respond-async"
             }
             payload = {
-                "input": input,  # Ensure 'input' is defined elsewhere in your script
-                "webhook": external_webhook_url,  # This should be the top-level key in the payload
+                "input": input,
+                "webhook": external_webhook_url,
                 "webhook_events_filter": ["completed"]
             }
-            
             response = requests.post(f"http://{ssh_host}:{port}/predictions", json=payload, headers=header)
             return
         else:
             response = requests.post(f"http://{ssh_host}:{port}/predictions", json={"input": input})
+        
         if response.status_code == 200:
-            jobs.pop(job_id, None)
-            save_jobs()
             results = response.json()
+            if results is None:
+                raise ValueError("No data in response")
+            if "metrics" in results and "predict_time" in results["metrics"]:
+                duration = results["metrics"]["predict_time"]
+            else:
+                duration = None
+            
             current_prediction.update({
-                "status": results["status"],
+                "status": "success",
                 "finished": str(datetime.now()),
-                "duration": results["metrics"]["predict_time"] 
+                "duration": duration
             })
             update_prediction_file()
-            return response.json()
+            return results
         else:
-            print("response", response)
             current_prediction["status"] = "failed"
             update_prediction_file()
+            print("response", response)
             return response.json()
     except requests.exceptions.RequestException as e:
         current_prediction["status"] = "failed"
@@ -357,6 +362,7 @@ def make_prediction(job_id, port, input, webhook_url=None, external_webhook_url=
         print(f" ❌ Prediction failed for job {job_id}.")
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
+
     
 
 def handle_job_failure(job_id, status):
