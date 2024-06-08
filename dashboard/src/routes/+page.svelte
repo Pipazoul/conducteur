@@ -1,8 +1,9 @@
 <script lang="ts">
+    import { PUBLIC_ENV } from '$env/static/public'
     import { Area, Axis, Bars, Chart, Highlight, LinearGradient, RectClipPath, Svg, Tooltip, TooltipItem } from "layerchart";
     import { scaleBand } from "d3-scale";
     import { onMount } from "svelte";
-	import { page } from "$app/stores";
+  	import { page } from "$app/stores";
   
     interface Prediction {
       user: string;
@@ -12,7 +13,8 @@
       finished: string; // YYYY-MM-DD HH:MM:SS
       duration: number;
     }
-    let baseDomain = $page.base;
+    let environment = PUBLIC_ENV || 'prod';
+    let url = environment === 'prod' ? '/predictions/' : 'http://localhost:8000/predictions/';
     let predictions: Prediction[] = [];
     let filteredPredictions: Prediction[] = [];
     let filterDuration = '6h'; // Default filter
@@ -52,7 +54,7 @@
         const headers = new Headers();
         headers.set("Authorization", `Bearer ${token}`);
         //const response = await fetch("http://localhost:8000/predictions", {
-        const response = await fetch("/predictions/", {
+        const response = await fetch(url, {
             headers,
         });
 
