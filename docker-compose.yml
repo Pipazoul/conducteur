@@ -2,20 +2,22 @@ version: '3.8'
 services:
   conducteur:
     image: yassinsiouda/conducteur:latest
-    build: .
+    build: ./orchestrator
     ports:
       - "8000:80"
     env_file:
       - .env
     volumes:
       - ./id_rsa/conducteur:/root/.ssh/id_rsa
-      - ./src/:/app/src/
+      - ./orchestrator/src/:/app/src/
       - ./data:/app/data
-  # dashboard:
-  #   build: ./dashboard
-  #   ports:
-  #     - "5173:5173"
-  #   env_file:
-  #     - .env
-  #   volumes:
-  #     - ./dashboard/src:/app/src
+  dashboard:
+    profiles:
+      - dev
+    build: ./dashboard
+    ports:
+      - "5173:5173"
+    env_file:
+      - .env
+    volumes:
+      - ./dashboard/src:/app/src
