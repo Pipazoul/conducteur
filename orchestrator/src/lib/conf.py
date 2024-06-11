@@ -51,7 +51,6 @@ def deleteTokenByName(name: str):
 
 def updateTokenByName(name: str, token: str, scope: List[str]):
     config = load()
-    print(config)
     # Check if name exists
     for entry in config['tokens']:
         if name == entry['name']:
@@ -59,3 +58,7 @@ def updateTokenByName(name: str, token: str, scope: List[str]):
             entry['scope'] = scope
             save(config)
             return "Token updated"
+
+def returnUserNames():
+    config = load()
+    return [entry['name'] for entry in config['tokens']]
