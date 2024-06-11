@@ -14,6 +14,7 @@ import dotenv
 from lib.docker import stop_containers, start_or_restart_container, get_container_by_image, run_container, get_container
 import lib.jobs as jobsHandler
 import lib.conf as conf
+import lib.predictions as predictions
 dotenv.load_dotenv()
 app = FastAPI()
 
@@ -267,6 +268,42 @@ async def delete_token(
         raise HTTPException(status_code=403, detail="Not Authorized in scope")
     config = conf.deleteTokenByName(name)
     return config
+
+
+# get users list
+@app.get("/users")
+async def list_users(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Security(authenticate),
+):
+    scopeValid = verify_token_scope(request.headers.get("Authorization").split(" ")[1])
+    if not scopeValid:
+        raise HTTPException(status_code=403, detail="Not Authorized in scope")
+    return conf.returnUserNames()
+
+# get user predictions
+@app.post("/user/predictions")
+async def get_user_predictions(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Security(authenticate),
+):
+    data = await request.json()
+    user = data["user"]
+
+    if not "start" in data or not "end" in data:
+        start = None
+        end = None
+    else:
+        start = data["start"]
+        end = data["end"]
+
+
+    scopeValid = verify_token_scope(request.headers.get("Authorization").split(" ")[1])
+    if not scopeValid:
+        raise HTTPException(status_code=403, detail="Not Authorized in scope")
+    
+
+    return predictions.filter_by_user(user, start, end)
 
 def handle_prediction(job_id, input, webhook_url=None, external_webhook_url=None):
     print(f" 🧠 Handling prediction for job {job_id}...")
