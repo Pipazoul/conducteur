@@ -46,8 +46,14 @@ def filter_by_user(user, start, end):
             #"2024-06-11 11:58:37.471815",
             started = datetime.datetime.strptime(prediction['started'], "%Y-%m-%d %H:%M:%S.%f")
             if started >= start and started <= end:
-                filtered.append(prediction)
-                totalDuration += prediction['duration']
+                try:
+                    filtered.append(prediction)
+                    totalDuration += prediction['duration']
+                except KeyError:
+                    # remove the prediction from the list
+                    predictions.remove(prediction)
+    save(predictions)
+                
 
     
 
