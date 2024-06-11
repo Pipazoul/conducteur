@@ -3,19 +3,9 @@
     $: console.log($config);
 
     function addToken() {
-        // add on top of the array
-        config.update((c) => {
-            c.tokens = [
-                {
-                    name: "New Token",
-                    token: "",
-                    scope: ""
-                },
-                ...(c.tokens || [])
-            ]
-            return c;
-        })
+     
     }
+
 
 
 </script>
@@ -35,7 +25,6 @@
         <div class="flex flex-col">
             <textarea class="textarea textarea-bordered w-full " rows="6" bind:value={$config.tokens[index].scope}></textarea>
         </div>
-        <
     {/each}
     </div>
 </section>
