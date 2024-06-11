@@ -2,10 +2,11 @@
 <script>
   import "tailwindcss/tailwind.css";
   import { onMount } from "svelte";
-	import { watch } from "../lib/store";
+	import { getTokens, watch } from "../lib/store";
 
   onMount(async () => {
     await watch();
+    await getTokens();
   });
 </script>
 <div class="drawer lg:drawer-open">
@@ -22,7 +23,7 @@
       <!-- Sidebar content here -->
       <li><a href="/tokens"> 🔐 Tokens</a></li>
       <li><a href="/usage"> ☕️ Usage</a></li>
-      <li><a href="/"> 💼 Jobs</a></li>
+      <li><a href="/dashboard"> 💼 Jobs</a></li>
     </ul>
   
   </div>

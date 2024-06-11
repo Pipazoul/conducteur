@@ -1,12 +1,14 @@
 import { writable } from 'svelte/store';
 import { get } from 'svelte/store';
-import { PUBLIC_ENV } from '$env/static/public'
-let environment = PUBLIC_ENV || 'prod';
+//import { PUBLIC_ENV } from '$env/static/public'
+//let environment = PUBLIC_ENV || 'prod';
+let environment =  'dev';
+
 export const url = writable(environment === 'prod' ? '/' : 'http://localhost:8000/');
 export const token = writable('');
 export const users = writable([]);
 export const predictions = writable([]);
-export const tokens = writable([]);
+export const config = writable([]);
 
 
 export async function fetchUsers() {
@@ -28,7 +30,7 @@ export async function getPredictions() {
         const headers = new Headers();
         headers.set("Authorization", `Bearer ${get(token)}`);
         //const response = await fetch("http://localhost:8000/predictions", {
-        const response = await fetch(get(url) + "predictions", {
+        const response = await fetch(get(url) + "predictions/", {
             headers,
         });
 
@@ -66,7 +68,7 @@ export async function getTokens() {
         }
         const data = await response.json();
 
-        tokens.set(data);
+        config.set(data);
     } catch (error) {
         console.error(error);
     }
@@ -76,9 +78,7 @@ export async function watch(){
     token.set(localStorage.getItem('token') || '');
     await fetchUsers();
     await getPredictions();
-    await getTokens();
-
     // call watch every 5 seconds
-    //setTimeout(watch, 5000);
+    setTimeout(watch, 5000);
 
 }
