@@ -216,7 +216,7 @@ async def list_tokens(
 
 
 # update the token
-@app.put("/tokens")
+@app.put("/tokens/",include_in_schema=False)
 async def update_token(
     request: Request,
     credentials: HTTPAuthorizationCredentials = Security(authenticate),
@@ -239,7 +239,7 @@ async def update_token(
     return config
 
 # add a new token
-@app.post("/tokens")
+@app.post("/tokens/",include_in_schema=False)
 async def add_token(
     request: Request,
     credentials: HTTPAuthorizationCredentials = Security(authenticate),
@@ -256,7 +256,7 @@ async def add_token(
 
 
 # delete a token
-@app.delete("/tokens")
+@app.delete("/tokens/",include_in_schema=False)
 async def delete_token(
     request: Request,
     credentials: HTTPAuthorizationCredentials = Security(authenticate),
@@ -282,7 +282,7 @@ async def list_users(
     return conf.returnUserNames()
 
 # get user predictions
-@app.post("/user/predictions")
+@app.post("/user/predictions/",include_in_schema=False)
 async def get_user_predictions(
     request: Request,
     credentials: HTTPAuthorizationCredentials = Security(authenticate),
