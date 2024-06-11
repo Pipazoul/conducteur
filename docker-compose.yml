@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   conducteur:
     image: yassinsiouda/conducteur:latest

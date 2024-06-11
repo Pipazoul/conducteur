@@ -35,6 +35,7 @@ def authenticate(credentials: HTTPAuthorizationCredentials = Depends(auth_scheme
 
 
 def verify_scope(token: str,image: str):
+    config = conf.load()
     for entry in config['tokens']:
         print(f" 🔒 Verifying scope for token {token} and image {image}")
         if token == entry['token']:
@@ -43,6 +44,12 @@ def verify_scope(token: str,image: str):
                 return True
     raise HTTPException(status_code=403, detail="Not Authorized")
 
+def verify_token_scope(token: str):
+    config = conf.load()
+    for entry in config['tokens']:
+        if token == entry['token'] and "*" in entry['scope']:
+            return entry['scope']
+    raise HTTPException(status_code=403, detail="Not Authorized")
 
 
 # Load environment variables
@@ -140,14 +147,15 @@ async def predict(
     prefer: str = Header(None)):
     print(f" 🧠 Received prediction request with preference: {prefer}")
     data = await request.json()
-    job_response = await add_job(data["image"])
-    job_id = job_response["job_id"]
-    returnOpenAPI = data["openapi"] if "openapi" in data else False
-
+    
     token = request.headers.get("Authorization").split(" ")[1]
     scope = verify_scope(token, data["image"])
     if not scope:
         raise HTTPException(status_code=403, detail="Not Authorized in scope")
+
+    job_response = await add_job(data["image"])
+    job_id = job_response["job_id"]
+    returnOpenAPI = data["openapi"] if "openapi" in data else False
 
     current_prediction.update({
         "image": data["image"],
@@ -194,6 +202,71 @@ async def main():
 @app.get("/dashboard/_app/{path}", response_class=FileResponse)
 async def main(path):
     return "public/_app/" + path
+
+@app.get("/tokens")
+async def list_tokens(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Security(authenticate),
+):
+    scopeValid = verify_token_scope(request.headers.get("Authorization").split(" ")[1])
+    if not scopeValid:
+        raise HTTPException(status_code=403, detail="Not Authorized in scope")
+    return conf.load()
+
+
+# update the token
+@app.put("/tokens")
+async def update_token(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Security(authenticate),
+):
+    data = await request.json()
+    name = data["name"]
+    if "token" in data:
+        token = data["token"]
+    else:
+        token = ""
+    if "scope" in data:
+        scope = data["scope"]
+    else:
+        scope = []
+    
+    scopeValid = verify_token_scope(request.headers.get("Authorization").split(" ")[1])
+    if not scopeValid:
+        raise HTTPException(status_code=403, detail="Not Authorized in scope")
+    config = conf.updateTokenByName(name, token, scope)
+    return config
+
+# add a new token
+@app.post("/tokens")
+async def add_token(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Security(authenticate),
+):
+    data = await request.json()
+    name = data["name"]
+    token = data["token"]
+    scope = data["scope"]
+    scopeValid = verify_token_scope(request.headers.get("Authorization").split(" ")[1])
+    if not scopeValid:
+        raise HTTPException(status_code=403, detail="Not Authorized in scope")
+    config = conf.addTokenByName(name, token, scope)
+    return config
+
+
+# delete a token
+@app.delete("/tokens")
+async def delete_token(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Security(authenticate),
+):
+    data = await request.json()
+    name = data["name"]
+    scopeValid = verify_token_scope(request.headers.get("Authorization").split(" ")[1])
+    if not scopeValid:
+        raise HTTPException(status_code=403, detail="Not Authorized in scope")
+    config = conf.deleteTokenByName(name)
+    return config
 
 def handle_prediction(job_id, input, webhook_url=None, external_webhook_url=None):
     print(f" 🧠 Handling prediction for job {job_id}...")
