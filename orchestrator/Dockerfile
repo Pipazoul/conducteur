@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y openssh-client
 WORKDIR /app
 # Copy the current directory contents into the container at /usr/src/app
 COPY ./src/main.py /app/src/main.py
+COPY ./src/lib /app/src/lib
 COPY ./src/public /app/src/public
 COPY requirements.txt /app/
 
