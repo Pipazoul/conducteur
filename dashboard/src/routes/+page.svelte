@@ -3,7 +3,8 @@
     import { Area, Axis, Bars, Chart, Highlight, LinearGradient, RectClipPath, Svg, Tooltip, TooltipItem } from "layerchart";
     import { scaleBand } from "d3-scale";
     import { onMount } from "svelte";
-  	import { page } from "$app/stores";
+    import {url, token, predictions} from '$lib/store';
+	import { getPredictions } from '../lib/store';
   
     interface Prediction {
       user: string;
@@ -13,14 +14,12 @@
       finished: string; // YYYY-MM-DD HH:MM:SS
       duration: number;
     }
-    let environment = PUBLIC_ENV || 'prod';
-    let url = environment === 'prod' ? '/predictions/' : 'http://localhost:8000/predictions/';
-    let predictions: Prediction[] = [];
+    
     let filteredPredictions: Prediction[] = [];
     let filterDuration = '6h'; // Default filter
     let selectedUser: string | null = null;
-    let currentPageUrl = '';
-    let token = '';
+
+
 
     const timeFilters = {
         '5min': 0.08333333333333333,
@@ -34,47 +33,20 @@
         '24h': 24,
     };
   
-    onMount(async () => {
-        token = localStorage.getItem('token') || '';
-        await getPredictions();
-        filteredPredictions = predictions;
-        filter();
-        // setInterval(getPredictions, 1000); // Uncomment for periodic updates
-    });
-    
+    $: {
+       if($predictions.length > 0) {
+        console.log('LOL', $predictions);
+           filter();
+       }
+    }
+  
     async function setToken(token: string) {
         localStorage.setItem('token', token);
         await getPredictions();
-        filteredPredictions = predictions;
+        filteredPredictions = $predictions;
         token_modal.close();
     }
   
-    async function getPredictions() {
-    try {
-        const headers = new Headers();
-        headers.set("Authorization", `Bearer ${token}`);
-        //const response = await fetch("http://localhost:8000/predictions", {
-        const response = await fetch(url, {
-            headers,
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-
-        // Get the current time and subtract 24 hours
-        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-        // Filter the predictions to only include those finished within the last 24 hours
-        predictions = data.filter(prediction => {
-            const finishedTime = new Date(prediction.finished);
-            return finishedTime >= oneDayAgo;
-        });
-    } catch (error) {
-        console.error(error);
-    }
-}
   
     async function filter() {
         const now = new Date();
@@ -92,15 +64,15 @@
 
     function filterByUser() {
         if (selectedUser) {
-            return predictions.filter(prediction => prediction.user === selectedUser);
+            return $predictions.filter(prediction => prediction.user === selectedUser);
         }
-        return predictions;
+        return $predictions;
     }
 
 
   </script>
   
-  <section class="p-4">
+  <section>
     <div class="flex justify-end absolute right-4 top-4">
         <button class="btn" onclick="token_modal.showModal()">🔑</button>
     </div>
@@ -110,7 +82,7 @@
             <p>Filter by user</p>
             <select class="select select-bordered w-full max-w-xs" bind:value={selectedUser} on:change={filter}>
               <option value={null}>All</option>
-              {#each [...new Set(predictions.map(prediction => prediction.user))] as user}
+              {#each [...new Set($predictions.map(prediction => prediction.user))] as user}
                 <option value={user}>{user}</option>
               {/each}
             </select>
@@ -126,7 +98,7 @@
         
     </div>
     <div>
-        {#if predictions.length === 0}
+        {#if $predictions.length === 0}
         <p>Loading...</p>
       {:else}
       <div class="h-[300px] p-4 border rounded group">
@@ -216,8 +188,8 @@
     <div class="modal-box flex flex-col justify-center">
         <h3 class="font-bold text-lg">Enter your token</h3>
         <div class="space-x-2 mt-2">
-            <input class="input input-bordered w-full max-w-xs" type="text" bind:value={token} />
-            <button class="btn" on:click={() => setToken(token)}>Submit</button>
+            <input class="input input-bordered w-full max-w-xs" type="text" bind:value={$token} />
+            <button class="btn" on:click={() => setToken($token)}>Submit</button>
         </div>
     </div>
     <form method="dialog" class="modal-backdrop">
