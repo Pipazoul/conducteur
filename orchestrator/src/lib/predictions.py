@@ -17,6 +17,11 @@ def save(predictions):
     with open("../data/predictions.json", "w") as file:
         json.dump(predictions, file, indent=4)
 
+def add(prediction):
+    predictions = load()
+    predictions.append(prediction)
+    save(predictions)
+
 def filter_by_user(user, start, end):
     predictions = load()
 
