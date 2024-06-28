@@ -77,7 +77,24 @@ jobs = {}
 jobs = jobsHandler.load()
 
 
-
+def health_check_routine(job_id, container_id, port):
+    print(f" 💊 Starting health check for job {job_id}...")
+    container = get_container(container_id)
+    start_time = datetime.now()
+    while datetime.now() - start_time < timedelta(minutes=4):
+        try:
+            response = requests.get(f"http://{ssh_host}:{port}/health-check")
+            if response.status_code == 200 and response.json().get("status") == "READY":
+                jobs[job_id]["status"] = "predicting"
+                jobsHandler.save(jobs)
+                return
+        except requests.exceptions.RequestException:
+            pass
+        time.sleep(0.2)
+    container.stop()
+    container.remove()
+    jobs.pop(job_id, None)
+    jobsHandler.save(jobs)
 
 async def add_job(image: str):
     print(f" 🚀 Adding job for image {image}...")
@@ -100,7 +117,7 @@ async def add_job(image: str):
     jobs[job_id] = {"image": image, "status": "running", "started_at": str(datetime.now()), "port": port}
     jobsHandler.save(jobs)
 
-    Thread(target=utils.health_check_routine, args=(job_id, container.id, port, ssh_host), daemon=True).start()
+    Thread(target=health_check_routine, args=(job_id, container.id, port), daemon=True).start()
     return {"job_id": job_id}
 
 
