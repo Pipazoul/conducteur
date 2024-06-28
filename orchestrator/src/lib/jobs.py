@@ -14,13 +14,3 @@ def save(jobs):
     with open("../data/jobs.json", "w") as file:
         json.dump(jobs, file, indent=4)
 
-
-class JobsHandler:
-    def __init__(self):
-        self.jobs = load()
-
-    def load(self):
-        return self.jobs
-
-    def save(self):
-        save(self.jobs)
