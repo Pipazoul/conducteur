@@ -15,6 +15,7 @@ from lib.docker import stop_containers, start_or_restart_container, get_containe
 import lib.jobs as jobsHandler
 import lib.conf as conf
 import lib.predictions as predictions
+import lib.utils as utils
 dotenv.load_dotenv()
 app = FastAPI()
 
@@ -76,18 +77,6 @@ jobs = {}
 jobs = jobsHandler.load()
 
 
-def update_prediction_file():
-    try:
-        with open("../data/predictions.json", "r") as file:
-            predictions = json.load(file)
-    except (FileNotFoundError, json.JSONDecodeError):
-        predictions = []
-    
-    predictions.append(current_prediction.copy())
-    
-    with open("../data/predictions.json", "w") as file:
-        json.dump(predictions, file, indent=4)
-
 def health_check_routine(job_id, container_id, port):
     print(f" 💊 Starting health check for job {job_id}...")
     container = get_container(container_id)
@@ -107,7 +96,6 @@ def health_check_routine(job_id, container_id, port):
     jobs.pop(job_id, None)
     jobsHandler.save(jobs)
 
-@app.post("/jobs/")
 async def add_job(image: str):
     print(f" 🚀 Adding job for image {image}...")
     
@@ -132,9 +120,6 @@ async def add_job(image: str):
     Thread(target=health_check_routine, args=(job_id, container.id, port), daemon=True).start()
     return {"job_id": job_id}
 
-@app.get("/jobs/")
-async def list_jobs():
-    return jobs
 
 class PredictionData(BaseModel):
     image: str
@@ -382,16 +367,16 @@ def make_prediction(job_id, port, input, webhook_url=None, external_webhook_url=
                 "finished": str(datetime.now()),
                 "duration": duration
             })
-            update_prediction_file()
+            predictions.add(current_prediction)
             return results
         else:
             current_prediction["status"] = "failed"
-            update_prediction_file()
+            predictions.add(current_prediction)
             print("response", response)
             return response.json()
     except requests.exceptions.RequestException as e:
         current_prediction["status"] = "failed"
-        update_prediction_file()
+        predictions.add(current_prediction)
         print(f" ❌ Prediction failed for job {job_id}.")
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -401,7 +386,7 @@ def handle_job_failure(job_id, status):
     jobs.pop(job_id, None)
     jobsHandler.save(jobs)
     current_prediction["status"] = "failed"
-    update_prediction_file()
+    predictions.add(current_prediction)
     detail = "Job failed during execution." if status == "failed" else "Job timed out or failed."
     raise HTTPException(status_code=408, detail=detail)
 
