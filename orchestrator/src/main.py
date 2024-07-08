@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import  HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 import dotenv
 from lib.docker import stop_containers, start_or_restart_container, get_container_by_image, run_container, get_container
@@ -152,7 +153,8 @@ async def predict(
     if prefer == "respond-async":
         webhook_url = "http://192.168.1.62:8000/webhook"
         external_webhook_url = data["webhook"]
-        handle_prediction(job_id, data["input"], webhook_url=webhook_url, external_webhook_url=external_webhook_url)
+        background_tasks.add_task(handle_prediction, job_id, data["input"], webhook_url=webhook_url, external_webhook_url=external_webhook_url)
+        #handle_prediction(job_id, data["input"], webhook_url=webhook_url, external_webhook_url=external_webhook_url)
         return {"job_id": job_id, "message": "Prediction in progress. Results will be sent to the webhook URL."}
     
     if returnOpenAPI:
@@ -162,7 +164,7 @@ async def predict(
         else:
             return json.JSONResponse(status_code=500, content={"message": "Failed to retrieve OpenAPI specification."})
     else:
-        return handle_prediction(job_id, data["input"])
+        return await run_in_threadpool(handle_prediction, job_id, data["input"])
 
 @app.post("/webhook")
 async def webhook(request: Request):
