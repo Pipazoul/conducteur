@@ -11,7 +11,6 @@ ssh_key_path = "/root/.ssh/id_rsa"
 ssh_host = os.getenv("DOCKER_SSH_HOST")
 
 utils.add_ssh_host_key(ssh_host)
-
 client = DockerClient(base_url=f"ssh://{ssh_user}@{ssh_host}" if ssh_key_path else "unix://var/run/docker.sock")
 
 def stop_containers():
