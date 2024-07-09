@@ -1,11 +1,12 @@
 import json
+import lib.conf as conf
 
-
-path = "../data/logs/jobs.json"
+config = conf.load()
+jobsPath = config["logs"]["jobsPath"]
 
 def load():
     try:
-        with open("../data/logs/jobs.json", "r") as file:
+        with open(jobsPath, "r") as file:
             print("📂 Loading jobs...")
             print(json.load(file))
             return json.load(file)
