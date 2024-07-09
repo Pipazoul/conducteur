@@ -1,5 +1,11 @@
 import json
 import datetime 
+import lib.conf as conf
+
+config = conf.load()
+predictionsPath = config["logs"]["predictionsPath"]
+
+
 
 class Prediction:
     user: str
@@ -10,15 +16,16 @@ class Prediction:
     duration: float
 
 def load():
-    with open("../data/predictions.json", "r") as file:
+    with open(predictionsPath, "r") as file:
         return json.load(file)
 
 def save(predictions):
-    with open("../data/predictions.json", "w") as file:
+    with open(predictionsPath, "w") as file:
         json.dump(predictions, file, indent=4)
 
 def add(prediction):
     predictions = load()
+    
     predictions.append(prediction)
     save(predictions)
 

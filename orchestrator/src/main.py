@@ -24,9 +24,9 @@ app = FastAPI()
 # Define the auth_scheme using HTTPBearer
 auth_scheme = HTTPBearer()
 
+
 config = conf.load()
-
-
+utils.createMissingFiles([config["logs"]["jobsPath"],config["logs"]["nodesPath"],config["logs"]["predictionsPath"]])
 
 def authenticate(credentials: HTTPAuthorizationCredentials = Depends(auth_scheme)):
     token = credentials.credentials
@@ -395,4 +395,4 @@ def handle_job_failure(job_id, status):
 if __name__ == "__main__":
     import uvicorn
     print(" 🚀 Server running at http://localhost:8000")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
