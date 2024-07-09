@@ -1,9 +1,11 @@
 import json
 
 
+path = "../data/logs/jobs.json"
+
 def load():
     try:
-        with open("../data/jobs.json", "r") as file:
+        with open("../data/logs/jobs.json", "r") as file:
             print("📂 Loading jobs...")
             print(json.load(file))
             return json.load(file)
@@ -11,6 +13,6 @@ def load():
         return {}
 
 def save(jobs):
-    with open("../data/jobs.json", "w") as file:
+    with open("../data/logs/jobs.json", "w") as file:
         json.dump(jobs, file, indent=4)
 
