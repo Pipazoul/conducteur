@@ -7,7 +7,6 @@ jobsPath = config["logs"]["jobsPath"]
 def load():
     try:
         with open(jobsPath, "r") as file:
-            print("📂 Loading jobs...")
             return json.load(file)
     except (FileNotFoundError, json.JSONDecodeError):
         return {}

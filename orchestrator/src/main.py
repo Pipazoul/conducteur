@@ -75,7 +75,7 @@ app.add_middleware(
 )
 
 # Initialize jobs dictionary
-jobsHandler.save({})
+jobs = jobsHandler.save({})
 
 def health_check_routine(job_id, container_id, port):
     print(f" 💊 Starting health check for job {job_id}...")
@@ -141,10 +141,14 @@ async def predict(
     scope = verify_scope(token, data["image"])
     if not scope:
         raise HTTPException(status_code=403, detail="Not Authorized in scope")
-
-    job_response = await add_job(data["image"])
-    if not job_response:
-        raise HTTPException(status_code=503, detail="No available nodes to run the job, try again later")
+    while True:
+        job_response = await add_job(data["image"])
+        if  job_response:
+            break
+        print("No available nodes to run the job, retrying...")
+        time.sleep(1)
+        
+            #raise HTTPException(status_code=503, detail="No available nodes to run the job, try again later")
     job_id = job_response["job_id"]
     returnOpenAPI = data["openapi"] if "openapi" in data else False
 
@@ -286,28 +290,27 @@ async def get_user_predictions(
         start = data["start"]
         end = data["end"]
 
-
     scopeValid = verify_token_scope(request.headers.get("Authorization").split(" ")[1])
     if not scopeValid:
         raise HTTPException(status_code=403, detail="Not Authorized in scope")
     
-
     return predictions.filter_by_user(user, start, end)
 
 def handle_prediction(job_id, input, webhook_url=None, external_webhook_url=None):
     print(f" 🧠 Handling prediction for job {job_id}...")
     jobs = jobsHandler.load()
-    print(jobs)
     print(f"Job status {jobs[job_id]}")
     job = jobs[job_id]
     start_time = datetime.now()
     timeout = timedelta(minutes=3)
-
     while job["status"] == "running" and datetime.now() - start_time < timeout:
-        time.sleep(0.2)
-        job = jobs[job_id]
-
-    if job["status"] == "":
+        try:
+            jobs = jobsHandler.load()
+            time.sleep(0.2)
+            job = jobs[job_id]
+        except Exception as e:
+            print('Failed to load jobs')
+    if job["status"] == "predicting":
         response = make_prediction(job_id, job["port"], input, webhook_url, external_webhook_url)
         nodes.updateState(jobs[job_id]["node"]["name"], "available")
         return response
