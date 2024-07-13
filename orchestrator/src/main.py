@@ -296,6 +296,17 @@ async def get_user_predictions(
     
     return predictions.filter_by_user(user, start, end)
 
+# Get Nodes list
+@app.get("/nodes")
+async def list_nodes(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Security(authenticate),
+):
+    scopeValid = verify_token_scope(request.headers.get("Authorization").split(" ")[1])
+    if not scopeValid:
+        raise HTTPException(status_code=403, detail="Not Authorized in scope")
+    return nodes.state()
+
 def handle_prediction(job_id, input, webhook_url=None, external_webhook_url=None):
     print(f" 🧠 Handling prediction for job {job_id}...")
     jobs = jobsHandler.load()
