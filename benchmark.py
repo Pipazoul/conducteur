@@ -46,6 +46,6 @@ def benchmark_requests(n):
         for future in as_completed(futures):
             request_id, duration, response_type = future.result()
             print(f"Request ID: {request_id}, Response Time: {duration} seconds, Type: {response_type}")
-
+    
 if __name__ == "__main__":
     benchmark_requests(100)
