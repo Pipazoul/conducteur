@@ -21,9 +21,10 @@
     <label for="my-drawer-2" aria-label="close sidebar" class="drawer-overlay"></label> 
     <ul class="menu p-4 w-44 min-h-full bg-base-200 text-base-content">
       <!-- Sidebar content here -->
-      <li><a href="/tokens"> 🔐 Tokens</a></li>
-      <li><a href="/usage"> ☕️ Usage</a></li>
       <li><a href="/dashboard"> 💼 Jobs</a></li>
+      <li><a href="/nodes"> 💻 Nodes</a></li>
+      <li><a href="/usage"> ⌛ Usage</a></li>
+      <li><a href="/tokens"> 🔐 Tokens</a></li>
     </ul>
   
   </div>

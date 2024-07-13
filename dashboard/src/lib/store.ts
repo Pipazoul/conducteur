@@ -1,11 +1,11 @@
 import { writable } from 'svelte/store';
 import { get } from 'svelte/store';
-//import { PUBLIC_ENV } from '$env/static/public'
-//let environment = PUBLIC_ENV || 'prod';
-let environment =  'dev';
+
+let environment =  'prod';
 
 export const url = writable(environment === 'prod' ? '/' : 'http://localhost:8000/');
 export const token = writable('');
+export const nodesState = writable([] as Node[]);
 export const users = writable([]);
 export const predictions = writable([]);
 export const config = writable([]);
@@ -24,12 +24,9 @@ export async function fetchUsers() {
 
 
 export async function getPredictions() {
-    console.log('getPredictions');
-    console.log('token', get(token));
     try {
         const headers = new Headers();
         headers.set("Authorization", `Bearer ${get(token)}`);
-        //const response = await fetch("http://localhost:8000/predictions", {
         const response = await fetch(get(url) + "predictions/", {
             headers,
         });
@@ -74,11 +71,30 @@ export async function getTokens() {
     }
 }
 
+export async function getNodesState() {
+    try  {
+        const headers = new Headers();
+        headers.set("Authorization", `Bearer ${get(token)}`);
+        const response = await fetch(get(url) + "nodes", {
+            headers,
+        });
+        if  (!response.ok)  {
+            throw new Error(`HTTP error ${response.status}`);
+        }
+        const data = await response.json();
+        nodesState.set(data);
+        return data;
+        } catch (error) {
+            console.error(error)
+        }
+}
+
 export async function watch(){
     token.set(localStorage.getItem('token') || '');
     await fetchUsers();
     await getPredictions();
+    await getNodesState();
     // call watch every 5 seconds
-    setTimeout(watch, 5000);
+    setTimeout(watch, 3000);
 
 }
