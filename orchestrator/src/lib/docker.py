@@ -5,15 +5,27 @@ from docker import DockerClient
 import docker.types
 import lib.utils as utils
 
-# Load environment variables
-ssh_user = os.getenv("DOCKER_SSH_USER")
-ssh_key_path = "/root/.ssh/id_rsa"
-ssh_host = os.getenv("DOCKER_SSH_HOST")
+# # Load environment variables
+# ssh_user = os.getenv("DOCKER_SSH_USER")
+# ssh_key_path = "/root/.ssh/id_rsa"
+# ssh_host = os.getenv("DOCKER_SSH_HOST")
 
-utils.add_ssh_host_key(ssh_host)
-client = DockerClient(base_url=f"ssh://{ssh_user}@{ssh_host}" if ssh_key_path else "unix://var/run/docker.sock")
+# utils.add_ssh_host_key(ssh_host)
+# client = DockerClient(base_url=f"ssh://{ssh_user}@{ssh_host}" if ssh_key_path else "unix://var/run/docker.sock")
 
-def stop_containers():
+def connectToDockerClient(node):
+    host = node['host']
+    user = node['user']
+    rsa  = node['rsa']
+    utils.add_ssh_host_key(host)
+    client = DockerClient(base_url=f"ssh://{user}@{host}" if rsa else "unix://var/run/docker.sock")
+    print(f"Connected to {host}")
+    print(f"Docker version : {client.version()}")
+    return client
+
+
+def stop_containers(node):
+    client = connectToDockerClient(node)
     print(" 🛑 Stopping all running containers...")
     for container in client.containers.list():
         ports = container.attrs["NetworkSettings"]["Ports"]
@@ -24,26 +36,33 @@ def stop_containers():
         else:
             print(f"No '5000/tcp' port mapping found for container {container.id}")
 
-def start_or_restart_container(container):
+def start_or_restart_container(node,container):
+    client = connectToDockerClient(node)
     if container.status == "exited":
         print(f" 🔄 Restarting container {container.id}...")
-        stop_containers()
+        stop_containers(node)
         container.start()
         container.reload()
     port_mappings = container.attrs["NetworkSettings"]["Ports"]
     return port_mappings["5000/tcp"][0]["HostPort"] if "5000/tcp" in port_mappings else None
 
-def get_container_by_image(image):
+def get_container_by_image(node,image):
+    print(" 🔍 Getting existing containers for image ", image)
+    client = connectToDockerClient(node)
     for container in client.containers.list(all=True):
         if container.attrs["Config"]["Image"] == image:
             return container
     return None
 
-def run_container(image):
-    stop_containers()
+def run_container(node,image):
+    print(" 🚀 Running container for image ", image)
+    client = connectToDockerClient(node)
+    stop_containers(node)
     port = random.randint(6000, 6600)
     container = client.containers.run(image, detach=True, ports={"5000/tcp": port}, device_requests=[docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])])
     return container, port
 
-def get_container(container_id):
+def get_container(node,container_id):
+    print(" 🔍 Getting existing containers for id ", container_id)
+    client = connectToDockerClient(node)
     return client.containers.get(container_id)
