@@ -17,6 +17,7 @@ import lib.jobs as jobsHandler
 import lib.conf as conf
 import lib.predictions as predictions
 import lib.utils as utils
+import lib.nodes as nodes
 dotenv.load_dotenv()
 app = FastAPI()
 
@@ -27,6 +28,7 @@ auth_scheme = HTTPBearer()
 
 config = conf.load()
 utils.createMissingFiles([config["logs"]["jobsPath"],config["logs"]["nodesPath"],config["logs"]["predictionsPath"]])
+nodes.initNodeState()
 
 def authenticate(credentials: HTTPAuthorizationCredentials = Depends(auth_scheme)):
     token = credentials.credentials
@@ -56,7 +58,6 @@ def verify_token_scope(token: str):
 
 
 # Load environment variables
-ssh_host = os.getenv("DOCKER_SSH_HOST")
 cors_origins = os.getenv("API_CORS_ORIGIN").split(",")
 # Define our static folder, where will be our svelte build later
 app.mount("/dashboard", StaticFiles(directory="public"), name="dashboard")
@@ -74,17 +75,17 @@ app.add_middleware(
 )
 
 # Initialize jobs dictionary
-jobs = {}
-jobs = jobsHandler.load()
-
+jobsHandler.save({})
 
 def health_check_routine(job_id, container_id, port):
     print(f" 💊 Starting health check for job {job_id}...")
-    container = get_container(container_id)
+    jobs = jobsHandler.load()
+    container = get_container(jobs[job_id]["node"],container_id)
     start_time = datetime.now()
+    host = jobs[job_id]["node"]["host"]
     while datetime.now() - start_time < timedelta(minutes=4):
         try:
-            response = requests.get(f"http://{ssh_host}:{port}/health-check")
+            response = requests.get(f"http://{host}:{port}/health-check")
             if response.status_code == 200 and response.json().get("status") == "READY":
                 jobs[job_id]["status"] = "predicting"
                 jobsHandler.save(jobs)
@@ -98,26 +99,27 @@ def health_check_routine(job_id, container_id, port):
     jobsHandler.save(jobs)
 
 async def add_job(image: str):
+    jobs = jobsHandler.load()
     print(f" 🚀 Adding job for image {image}...")
+    availableNode = nodes.getAvailableNode()
+    if availableNode == None:
+        return False
     
     # Check if any job is currently running or exists
-    if jobs:
-        # Option 2: Stop and remove the existing job
-        stop_containers()
-        jobs.clear()
-        jobsHandler.save(jobs)
+    # if jobs:
+    #     # Option 2: Stop and remove the existing job
+    #     stop_containers(availableNode)
 
-    container = get_container_by_image(image)
+    nodes.updateState(availableNode["name"], "busy")
+    container = get_container_by_image(availableNode,image)
     if container:
-        port = start_or_restart_container(container)
+        port = start_or_restart_container(availableNode,container)
         job_id = str(container.id)
     else:
-        container, port = run_container(image)
+        container, port = run_container(availableNode,image)
         job_id = str(container.id)
-
-    jobs[job_id] = {"image": image, "status": "running", "started_at": str(datetime.now()), "port": port}
+    jobs[job_id] = {"image": image, "status": "running", "started_at": str(datetime.now()), "port": port, "node": availableNode}
     jobsHandler.save(jobs)
-
     Thread(target=health_check_routine, args=(job_id, container.id, port), daemon=True).start()
     return {"job_id": job_id}
 
@@ -141,6 +143,8 @@ async def predict(
         raise HTTPException(status_code=403, detail="Not Authorized in scope")
 
     job_response = await add_job(data["image"])
+    if not job_response:
+        raise HTTPException(status_code=503, detail="No available nodes to run the job, try again later")
     job_id = job_response["job_id"]
     returnOpenAPI = data["openapi"] if "openapi" in data else False
 
@@ -178,8 +182,7 @@ async def list_predictions(
     credentials: HTTPAuthorizationCredentials = Security(authenticate),
 ):
     try:
-        with open("../data/predictions.json", "r") as file:
-            return json.load(file)
+        return predictions.load()
     except (FileNotFoundError, json.JSONDecodeError):
         return []
 
@@ -200,7 +203,6 @@ async def list_tokens(
     if not scopeValid:
         raise HTTPException(status_code=403, detail="Not Authorized in scope")
     return conf.load()
-
 
 # update the token
 @app.put("/tokens/",include_in_schema=False)
@@ -294,6 +296,9 @@ async def get_user_predictions(
 
 def handle_prediction(job_id, input, webhook_url=None, external_webhook_url=None):
     print(f" 🧠 Handling prediction for job {job_id}...")
+    jobs = jobsHandler.load()
+    print(jobs)
+    print(f"Job status {jobs[job_id]}")
     job = jobs[job_id]
     start_time = datetime.now()
     timeout = timedelta(minutes=3)
@@ -302,13 +307,15 @@ def handle_prediction(job_id, input, webhook_url=None, external_webhook_url=None
         time.sleep(0.2)
         job = jobs[job_id]
 
-    if job["status"] == "predicting":
+    if job["status"] == "":
         response = make_prediction(job_id, job["port"], input, webhook_url, external_webhook_url)
+        nodes.updateState(jobs[job_id]["node"]["name"], "available")
         return response
     else:
         handle_job_failure(job_id, job["status"])
 
 def get_openapi(job_id):
+    jobs = jobsHandler.load()
     job = jobs.get(job_id)
     while job["status"] == "running":
         time.sleep(0.2)
@@ -317,7 +324,8 @@ def get_openapi(job_id):
     if job and job["status"] == "predicting":
         try:
             port = job["port"]
-            response = requests.get(f"http://{ssh_host}:{port}/openapi.json")
+            host = jobs[job_id]["node"]["host"]
+            response = requests.get(f"http://{host}:{port}/openapi.json")
             if response.status_code == 200:
                 jobs.pop(job_id, None)
                 jobsHandler.save(jobs)
@@ -333,6 +341,8 @@ def get_openapi(job_id):
 
 def make_prediction(job_id, port, input, webhook_url=None, external_webhook_url=None):
     print(f" 🧠 Making prediction for job {job_id}...")
+    jobs = jobsHandler.load()
+    host = jobs[job_id]["node"]["host"]
     try:
         print("webhook_url", webhook_url)
         print("external_webhook_url", external_webhook_url)
@@ -348,12 +358,13 @@ def make_prediction(job_id, port, input, webhook_url=None, external_webhook_url=
                 "webhook": external_webhook_url,
                 "webhook_events_filter": ["completed"]
             }
-            response = requests.post(f"http://{ssh_host}:{port}/predictions", json=payload, headers=header)
+            response = requests.post(f"http://{host}:{port}/predictions", json=payload, headers=header)
             return
         else:
-            response = requests.post(f"http://{ssh_host}:{port}/predictions", json={"input": input})
+            response = requests.post(f"http://{host}:{port}/predictions", json={"input": input})
         
         if response.status_code == 200:
+            nodes.updateState(jobs[job_id]["node"]["name"], "available")
             results = response.json()
             # check if result has no metrics key
             if not results["output"]:
@@ -372,6 +383,7 @@ def make_prediction(job_id, port, input, webhook_url=None, external_webhook_url=
             predictions.add(current_prediction)
             return results
         else:
+            nodes.updateState(jobs[job_id]["node"]["name"], "available")
             current_prediction["status"] = "failed"
             predictions.add(current_prediction)
             print("response", response)
@@ -385,6 +397,7 @@ def make_prediction(job_id, port, input, webhook_url=None, external_webhook_url=
 
 def handle_job_failure(job_id, status):
     print(f" ❌ Job {job_id} failed with status {status}.")
+    jobs = jobsHandler.load()
     jobs.pop(job_id, None)
     jobsHandler.save(jobs)
     current_prediction["status"] = "failed"
