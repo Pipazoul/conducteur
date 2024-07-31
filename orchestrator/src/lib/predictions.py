@@ -1,6 +1,7 @@
 import json
 import datetime 
 import lib.conf as conf
+import time
 
 config = conf.load()
 predictionsPath = config["logs"]["predictionsPath"]
@@ -23,11 +24,20 @@ def save(predictions):
     with open(predictionsPath, "w") as file:
         json.dump(predictions, file, indent=4)
 
-def add(prediction):
-    predictions = load()
-    
-    predictions.append(prediction)
-    save(predictions)
+def add(prediction, max_retries=3):
+    for attempt in range(max_retries):
+       try:
+        predictions = load()
+        predictions.append(prediction)
+        save(predictions)
+        break
+       except Exception as e:
+            if attempt < max_retries - 1:
+                # retry with slight delay
+                time.sleep(0.5)  # adjust this to your desired delay
+            else:
+                raise e
+    return True
 
 def filter_by_user(user, start, end):
     predictions = load()
