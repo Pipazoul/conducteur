@@ -21,7 +21,6 @@ import lib.nodes as nodes
 dotenv.load_dotenv()
 app = FastAPI()
 
-
 # Define the auth_scheme using HTTPBearer
 auth_scheme = HTTPBearer()
 
@@ -323,7 +322,6 @@ def handle_prediction(job_id, input, webhook_url=None, external_webhook_url=None
             print('Failed to load jobs')
     if job["status"] == "predicting":
         response = make_prediction(job_id, job["port"], input, webhook_url, external_webhook_url)
-        nodes.updateState(jobs[job_id]["node"]["name"], "available")
         return response
     else:
         handle_job_failure(job_id, job["status"])

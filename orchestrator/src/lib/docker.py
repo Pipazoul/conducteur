@@ -13,14 +13,20 @@ import lib.utils as utils
 # utils.add_ssh_host_key(ssh_host)
 # client = DockerClient(base_url=f"ssh://{ssh_user}@{ssh_host}" if ssh_key_path else "unix://var/run/docker.sock")
 
-def connectToDockerClient(node):
-    host = node['host']
-    user = node['user']
-    rsa  = node['rsa']
-    utils.add_ssh_host_key(host)
-    client = DockerClient(base_url=f"ssh://{user}@{host}" if rsa else "unix://var/run/docker.sock")
-    return client
+# Somewhere in the global scope
+docker_clients = {}
 
+def connectToDockerClient(node):
+    # Check if client already exists and is connected
+    if node['host'] in docker_clients and docker_clients[node['host']].ping():
+        return docker_clients[node['host']]
+
+    # Create a new client and store in the dictionary
+    utils.add_ssh_host_key(node['host'])
+    client = DockerClient(base_url=f"ssh://{node['user']}@{node['host']}" if node['rsa'] else "unix://var/run/docker.sock")
+    docker_clients[node['host']] = client
+    
+    return client
 
 def stop_containers(node):
     client = connectToDockerClient(node)
