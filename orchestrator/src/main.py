@@ -328,10 +328,17 @@ def handle_prediction(job_id, input, webhook_url=None, external_webhook_url=None
 
 def get_openapi(job_id):
     jobs = jobsHandler.load()
-    job = jobs.get(job_id)
-    while job["status"] == "running":
-        time.sleep(0.2)
-        job = jobs.get(job_id)
+    job = jobs[job_id]
+    start_time = datetime.now()
+    timeout = timedelta(minutes=3)
+    while job["status"] == "running" and datetime.now() - start_time < timeout:
+        try:
+            jobs = jobsHandler.load()
+            time.sleep(0.2)
+            job = jobs[job_id]
+        except Exception as e:
+            print('Failed to load jobs')
+
 
     if job and job["status"] == "predicting":
         try:
