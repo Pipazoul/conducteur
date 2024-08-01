@@ -1,6 +1,6 @@
 services:
   conducteur:
-    image: yassinsiouda/conducteur:latest
+    image: yassinsiouda/conducteur:dev
     build: ./orchestrator
     ports:
       - "8000:80"

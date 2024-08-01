@@ -25,4 +25,4 @@ EXPOSE 80
 
 WORKDIR /app/src
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80", "--reload"]
