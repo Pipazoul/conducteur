@@ -1,86 +1,45 @@
-import json
-import datetime 
-import lib.conf as conf
-import time
+from enum import Enum
+import sqlite3
+con = sqlite3.connect("conducteur.db")
+cur = con.cursor()
 
-config = conf.load()
-predictionsPath = config["logs"]["predictionsPath"]
-
-
-
-class Prediction:
-    user: str
-    image: str
-    status: str
-    started: str
-    finished: str
-    duration: float
-
-def load():
-    with open(predictionsPath, "r") as file:
-        return json.load(file)
-
-def save(predictions):
-    with open(predictionsPath, "w") as file:
-        json.dump(predictions, file, indent=4)
-
-def add(prediction, max_retries=3):
-    for attempt in range(max_retries):
-       try:
-        predictions = load()
-        predictions.append(prediction)
-        save(predictions)
-        break
-       except Exception as e:
-            if attempt < max_retries - 1:
-                # retry with slight delay
-                time.sleep(0.5)  # adjust this to your desired delay
-            else:
-                raise e
-    return True
-
-def filter_by_user(user, start, end):
-    predictions = load()
-
-    filtered = []
-    totalDuration = 0
-    # chekc if start and end are None
-    if not start and not end:
-        for prediction in predictions:
-            if prediction['user'] == user:
-                filtered.append(prediction)
-                totalDuration += prediction['duration']
-        return {
-            "predictions": filtered,
-            "totalDuration": totalDuration
-        }
-    # check if start and end are DD-MM-YYYY
-    try:
-        start = datetime.datetime.strptime(start, "%d-%m-%Y")
-        end = datetime.datetime.strptime(end, "%d-%m-%Y")
-        # Adjust end date to the end of the day
-        end = end.replace(hour=23, minute=59, second=59)
-    except ValueError:
-        return "Invalid date format DD-MM-YYYY"
+class PredictionStatus(Enum):
+    pending = "pending"
+    running = "running"
+    completed = "completed"
+    failed = "failed"
+        
+class Predictions:
+    def __init__(self, user:str, image:str, started:str, finished:str, duration:float):
+            self.user = user
+            self.image = image
+            self.status = PredictionStatus.pending.value
+            self.started = started
+            self.finished = finished
+            self.duration = duration
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS prediction(
+                id INTEGER PRIMARY KEY,
+                user TEXT NOT NULL,
+                image TEXT NOT NULL,
+                status TEXT NOT NULL,
+                started DATETIME NOT NULL,
+                finished DATETIME NOT NULL,
+                duration FLOAT NOT NULL);
+            ''')
+        
+    def add(self):
+        cur.execute("INSERT INTO prediction (user,image,status,started,finished,duration) VALUES (?, ?, ?, ?, ?, ?)", 
+                    (self.user, self.image, self.status, self.started, self.finished, self.duration))
+        con.commit()
+        
+    def filter_by_user(self, user: str):
+        cur.execute("SELECT * FROM prediction WHERE user = ?", (user, ))
+        return cur.fetchall()
     
-    for prediction in predictions:
-        if prediction['user'] == user:
-            #"2024-06-11 11:58:37.471815",
-            started = datetime.datetime.strptime(prediction['started'], "%Y-%m-%d %H:%M:%S.%f")
-            if started >= start and started <= end:
-                try:
-                    filtered.append(prediction)
-                    totalDuration += prediction['duration']
-                except KeyError:
-                    # remove the prediction from the list
-                    predictions.remove(prediction)
-    save(predictions)
-                
-
-    
+    def get(self):
+        cur.execute('''SELECT * FROM prediction ''')
+        return cur.fetchall()
+        
 
 
-    return {
-        "predictions": filtered,
-        "totalDuration": totalDuration
-    }

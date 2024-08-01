@@ -1,57 +1,62 @@
-import lib.conf as conf
-import json
-import lib.docker as docker
-config = conf.load()
-nodesPath = config["logs"]["nodesPath"]
+from docker import DockerClient
+import subprocess
+from enum import Enum
 
 
-def state() -> dict:
-    with open(nodesPath, 'r') as file:
-        return json.load(file)
+class NodeState(Enum):
+    unknown = "unknown"
+    available = "available"
+    offline = "offline"
+    busy = "busy"
+
+class Node:
+    def __init__(self, name, user, host, rsa, weight, client=None):
+        self.name = name
+        self.user = user
+        self.host = host
+        self.rsa = rsa
+        self.weight = weight
+        self.client = client
+        self.state = NodeState.unknown
+    def add_ssh_host_key(self,host):
+        known_hosts_path = "/root/.ssh/known_hosts"
+        subprocess.run(["ssh-keyscan", "-H", host], stdout=open(known_hosts_path, "a"))
     
-def initNodeState():
-    nodes = config["nodes"]
-    nodesState = []
-    for node in nodes:
-        # clear the node state file and append []
-        with open(nodesPath, 'w') as outfile:
-            json.dump([], outfile)
-        try:
-            docker.connectToDockerClient(node)
-            nodeState = { "name": node["name"],"host": node["host"] ,"user": node["user"], "state": "available", "weight": node["weight"], "rsa": node["rsa"]}
-        except Exception as e:
-            print("Failed to connect to docker on "+ node["host"] +" with error : ",e)
-            # Update the state of this node to unavailable
-            nodeState = { "name": node["name"],"host": node["host"] ,"user": node["user"], "state": "offline", "weight": node["weight"], "rsa": node["rsa"]}
-        nodesState.append(nodeState)
-    with open(nodesPath, 'w') as outfile:
-        json.dump(nodesState, outfile)
+    def ping(self):
+        # true if pingable, false otherwise
+        does_ping = subprocess.call(['ping', '-c', '1', self.host], stdout=subprocess.PIPE) == 0
+        self.state = NodeState.available if does_ping else NodeState.offline
+        return does_ping
+
+    def connect(self):
+        self.add_ssh_host_key(self.host)
+        self.client = DockerClient(base_url=f"ssh://{self.user}@{self.host}" if self.rsa else "unix://var/run/docker.sock")
+        self.state = NodeState.available if self.client else NodeState.offline
+
+    def disconnect(self):
+        self.client.close()
+        self.state = NodeState.offline
 
 
-def getAvailableNode() -> dict:
-    nodes = state()
-    for node in nodes:
-        try:
-            docker.connectToDockerClient(node)
-        except Exception as e:
-            print("Failed to connect to docker on "+ node["host"] +" with error : ",e)
-            # Update the state of this node to unavailable
-            node["state"] = "offline"
+
+class Cluster:
+    def __init__(self, nodes):
+        self.nodes = [Node(name=n['name'], user=n['user'], host=n['host'], rsa=n['rsa'], weight=n['weight']) for n in nodes]
+        for node in self.nodes:
+            node.connect()
     
-    # Find the most heavy available node
-    available_nodes = [n for n in nodes if n["state"]  == "available"]
-    if available_nodes:
-        max_weight_node = max(available_nodes, key=lambda k: k['weight'])
-        return max_weight_node
-    else:
-        # Handle the case where there are no available nodes
-        return None
-
-def updateState(name, nodeState):
-    nodes = state()
-    for node in nodes:
-        if node["name"] == name:
-            node["state"] = nodeState
+    def disconnect_all(self):
+        for node in self.nodes:
+            node.disconnect()
     
-    with open(nodesPath, 'w') as outfile:
-        json.dump(nodes, outfile)
+    def available_node(self):
+        available = None
+        # sort nodes by weight and return the first one that is available
+        self.nodes = sorted(self.nodes, key=lambda n: n.weight)
+
+        for node in self.nodes:
+            if node.state == NodeState.available:
+                available = node
+                break
+        return available
+    
