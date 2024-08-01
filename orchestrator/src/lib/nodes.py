@@ -1,7 +1,9 @@
 from docker import DockerClient
 import subprocess
 from enum import Enum
-
+from lib.predictions import Predictions
+from lib.docker import Docker
+import time
 
 class NodeState(Enum):
     unknown = "unknown"
@@ -18,6 +20,7 @@ class Node:
         self.weight = weight
         self.client = client
         self.state = NodeState.unknown
+        self.prediction: Predictions = None
     def add_ssh_host_key(self,host):
         known_hosts_path = "/root/.ssh/known_hosts"
         subprocess.run(["ssh-keyscan", "-H", host], stdout=open(known_hosts_path, "a"))
@@ -51,8 +54,8 @@ class Cluster:
     
     def available_node(self):
         available = None
-        # sort nodes by weight and return the first one that is available
-        self.nodes = sorted(self.nodes, key=lambda n: n.weight)
+        # sort nodes by weight by the uppest and return the first one that is available
+        self.nodes = sorted(self.nodes, key=lambda n: n.weight, reverse=True)
 
         for node in self.nodes:
             if node.state == NodeState.available:
@@ -60,3 +63,23 @@ class Cluster:
                 break
         return available
     
+    def run_prediction(self, prediction: Predictions):
+        node = self.available_node()
+        # loop until we find an available node or all nodes are offline
+        while not node and any(n.state == NodeState.available for n in self.nodes):
+            time.sleep(1) # wait a second before trying again
+            node = self.available_node()
+            
+        if node:
+            print("Running prediction on", node.name)
+            # container routine
+            node.prediction = prediction
+            docker = Docker(node.client)
+            container = docker.get_container_by_image(prediction.image)
+            if not container:
+                print("Creating new container for", prediction.image)
+                container = docker.run_container(prediction.image)
+            else:
+                container = docker.start_or_restart_container(container)
+  
+        
