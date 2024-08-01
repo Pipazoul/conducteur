@@ -9,3 +9,5 @@ config.yaml
 predictions.json
 *.pyc
 data/logs/*.json
+orchestrator/src/old.*
+*.db
