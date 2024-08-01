@@ -10,7 +10,8 @@ class PredictionStatus(Enum):
     failed = "failed"
         
 class Predictions:
-    def __init__(self, user:str, image:str, started:str, finished:str, duration:float):
+    def __init__(self, user:str, image:str, started:str, finished:str = None, duration:float = None):
+            self.id = None  # will be set by the database when inserting a new row.
             self.user = user
             self.image = image
             self.status = PredictionStatus.pending.value
@@ -24,14 +25,16 @@ class Predictions:
                 image TEXT NOT NULL,
                 status TEXT NOT NULL,
                 started DATETIME NOT NULL,
-                finished DATETIME NOT NULL,
-                duration FLOAT NOT NULL);
+                finished DATETIME,
+                duration FLOAT);
             ''')
-        
-    def add(self):
-        cur.execute("INSERT INTO prediction (user,image,status,started,finished,duration) VALUES (?, ?, ?, ?, ?, ?)", 
+            cur.execute("INSERT INTO prediction (user,image,status,started,finished,duration) VALUES (?, ?, ?, ?, ?, ?)", 
                     (self.user, self.image, self.status, self.started, self.finished, self.duration))
-        con.commit()
+            con.commit()
+            self.id = cur.lastrowid
+            
+
+            
         
     def filter_by_user(self, user: str):
         cur.execute("SELECT * FROM prediction WHERE user = ?", (user, ))
