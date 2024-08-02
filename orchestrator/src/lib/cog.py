@@ -34,7 +34,7 @@ class Cog:
                 pass
             time.sleep(0.2)
         self.container.stop()
-        
+
         self.node.state = NodeState.available
         raise HTTPException(status_code=403, detail="The health_check timed out check your container logs for more information")
     def run(self):
@@ -64,4 +64,12 @@ class Cog:
             self.node.state = NodeState.available.value
             raise HTTPException(status_code=500, detail=f"Error the container returned a {response.status_code}")
         
-        
+    def openapi(self):
+        self.prediction.status = PredictionStatus.running.value
+        self.prediction.update()
+        response = requests.get(f"http://{self.host}:{self.port}/openapi.json")
+        if response.status_code == 200:
+            results = response.json()
+            return results
+        else:
+            raise HTTPException(status_code=500, detail=f"Error the container returned a {response.status_code} while fetching openapi")
