@@ -10,9 +10,6 @@ class Config:
             for token in data['tokens']:
                 self.tokens.append(token)
     def get_user_by_token(self, token):
-        print("getting user by token")
-        print(token)
-        print(self.tokens)
         for tk in self.tokens:
             if tk["token"] == token:
                 return tk["name"]
