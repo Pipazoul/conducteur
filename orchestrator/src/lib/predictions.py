@@ -1,6 +1,6 @@
 from enum import Enum
 import sqlite3
-con = sqlite3.connect("conducteur.db", check_same_thread=False)
+con = sqlite3.connect("/app/data/conducteur.db", check_same_thread=False)
 cur = con.cursor()
 
 class PredictionStatus(Enum):
