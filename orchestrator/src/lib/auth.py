@@ -1,5 +1,4 @@
-from fastapi import HTTPException, Depends, Request
-from fastapi.security import HTTPBearer
+from fastapi import HTTPException, Request
 from lib.config import Config
 
 class Authenticate:
@@ -27,9 +26,19 @@ class Authenticate:
     
     @staticmethod
     def verify_token_admin(token: str):
-        config = Authenticate.conf.load()
-        for entry in config['tokens']:
+        for entry in Authenticate.config.tokens:
             if token == entry['token'] and "*" in entry['scope']:
                 return entry['scope']
         raise HTTPException(status_code=403, detail="Not Authorized")
     
+    @staticmethod
+    def get_all_tokens():
+        return Authenticate.config.tokens
+    
+    @staticmethod
+    def get_all_users():
+        users = []
+        for entry in Authenticate.config.tokens:
+            user = entry['name']
+            users.append(user)
+        return users
