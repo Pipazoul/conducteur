@@ -45,11 +45,11 @@
         let imageSet = new Set();
 
         // Calculate total duration
-        let totalDuration = predictions.predictions.reduce((total, prediction) => total + prediction.duration, 0);
+        let totalDuration = predictions.reduce((total, prediction) => total + prediction.duration, 0);
 
         // For each prediction
-        for (let i = 0; i < predictions.predictions.length; i++) {
-            const prediction = predictions.predictions[i];
+        for (let i = 0; i < predictions.length; i++) {
+            const prediction = predictions[i];
 
             // Check if the image already exists in the set
             let existingEntry = Array.from(imageSet).find(entry => entry.image === prediction.image);
