@@ -2,6 +2,9 @@ from fastapi import HTTPException
 from datetime import datetime, timedelta
 import time
 import requests
+import os
+TIMEOUT = float(os.getenv('TIMEOUT', '1'))  # minutes
+
 
 from lib.predictions import Predictions, PredictionStatus
 from lib.nodes import NodeState
@@ -20,7 +23,7 @@ class Cog:
     
     def health_check(self):
         start_time = datetime.now()
-        while datetime.now() - start_time < timedelta(minutes=4):
+        while datetime.now() - start_time < timedelta(minutes=TIMEOUT):
             try:
                 response = requests.get(f"http://{self.host}:{self.port}/health-check")
                 if response.status_code == 200 and response.json().get("status") == "SETUP_FAILED":
@@ -64,12 +67,12 @@ class Cog:
             self.node.state = NodeState.available.value
             raise HTTPException(status_code=500, detail=f"Error the container returned a {response.status_code}")
         
-    def get_openapi_spec(self):
-        self.prediction.status = PredictionStatus.running.value
-        self.prediction.update()
+    def get_openapi_specs(self):
         response = requests.get(f"http://{self.host}:{self.port}/openapi.json")
         if response.status_code == 200:
             results = response.json()
+            self.node.state = NodeState.available.value
             return results
         else:
-            raise HTTPException(status_code=500, detail=f"Error the container returned a {response.status_code} while fetching openapi")
+            self.node.state = NodeState.available.value
+            raise HTTPException(status_code=500, detail=f"Error the container returned a {response.status_code} while fetching openapi specs")
