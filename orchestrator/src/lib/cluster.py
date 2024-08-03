@@ -6,6 +6,8 @@ import time
 from datetime import datetime, timedelta
 from fastapi import HTTPException
 import threading
+import os
+TIMEOUT = float(os.getenv('TIMEOUT', '1'))  # minutes
 
 class Cluster:
     def __init__(self, nodes):
@@ -33,7 +35,7 @@ class Cluster:
     def wait_node(self):
         with self.lock:
             start_time = datetime.now()
-            while datetime.now() - start_time < timedelta(minutes=4):
+            while datetime.now() - start_time < timedelta(minutes=TIMEOUT):
                 print("Waiting for a available node...")
                 time.sleep(1) # wait a second before trying again
                 node = self.select_node()
@@ -69,7 +71,13 @@ class Cluster:
     def queue_openai_spec(self, image: str):
         # wait for a available node
         node = self.wait_node()
+        node.state = NodeState.busy.value
         # setup the docker container on that node and get it ready for use
         container = self.setup_container(node, image)
-        
+        cog = Cog(node, {}, container)
+        health = cog.health_check()
+        if health:
+            result = cog.get_openapi_specs()
+            return result
+        node.state = NodeState.available.value
     

@@ -1,6 +1,8 @@
 import random
 import docker.types
 from fastapi import HTTPException
+import os
+
 
 class Docker:
     def __init__(self, client):

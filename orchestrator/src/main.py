@@ -55,7 +55,17 @@ async def predict(
     )
     return await run_in_threadpool(cluster.queue_prediction, new_prediction)
 
+@app.post("/image/openapi")
+async def get_image_openapi(
+    request: Request, 
+):
+    data = await request.json()
+    image = data["image"]
+    token = Authenticate.extract_token(request)
+    Authenticate.verify_existing_token(token)
+    Authenticate.verify_image_scope(token, image)
 
+    return await run_in_threadpool(cluster.queue_openai_spec, image)
 
 
 @app.get("/predictions/",include_in_schema=False)
