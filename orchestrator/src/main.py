@@ -53,7 +53,7 @@ async def predict(
         input= input_data,
         started= datetime.datetime.now(),
     )
-    return await run_in_threadpool(cluster.run_prediction, new_prediction)
+    return await run_in_threadpool(cluster.queue_prediction, new_prediction)
 
 
 

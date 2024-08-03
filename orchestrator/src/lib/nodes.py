@@ -1,3 +1,4 @@
+import threading
 from docker import DockerClient
 import subprocess
 from enum import Enum
@@ -12,6 +13,7 @@ class NodeState(Enum):
 
 class Node:
     def __init__(self, name, user, host, rsa, weight, client=None):
+        self.lock = threading.Lock()
         self.name = name
         self.user = user
         self.host = host
@@ -31,12 +33,14 @@ class Node:
         return does_ping
 
     def connect(self):
-        self.add_ssh_host_key(self.host)
-        self.client = DockerClient(base_url=f"ssh://{self.user}@{self.host}" if self.rsa else "unix://var/run/docker.sock")
-        self.state = NodeState.available.value if self.client else NodeState.offline.value
+        with self.lock:
+            self.add_ssh_host_key(self.host)
+            self.client = DockerClient(base_url=f"ssh://{self.user}@{self.host}" if self.rsa else "unix://var/run/docker.sock")
+            self.state = NodeState.available.value if self.client else NodeState.offline.value
 
     def disconnect(self):
-        self.client.close()
-        self.state = NodeState.offline.value
+        with self.lock:
+            self.client.close()
+            self.state = NodeState.offline.value
 
 

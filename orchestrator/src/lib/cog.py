@@ -64,7 +64,7 @@ class Cog:
             self.node.state = NodeState.available.value
             raise HTTPException(status_code=500, detail=f"Error the container returned a {response.status_code}")
         
-    def openapi(self):
+    def get_openapi_spec(self):
         self.prediction.status = PredictionStatus.running.value
         self.prediction.update()
         response = requests.get(f"http://{self.host}:{self.port}/openapi.json")

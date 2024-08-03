@@ -3,10 +3,13 @@ from lib.cog import Cog
 from lib.nodes import Node, NodeState
 from lib.predictions import Predictions
 import time
+from datetime import datetime, timedelta
 from fastapi import HTTPException
+import threading
 
 class Cluster:
     def __init__(self, nodes):
+        self.lock = threading.Lock()
         self.nodes = [Node(name=n['name'], user=n['user'], host=n['host'], rsa=n['rsa'], weight=n['weight']) for n in nodes]
         for node in self.nodes:
             node.connect()
@@ -15,7 +18,7 @@ class Cluster:
         for node in self.nodes:
             node.disconnect()
     
-    def available_node(self):
+    def select_node(self):
         available = None
         # sort nodes by weight by the uppest and return the first one that is available
         self.nodes = sorted(self.nodes, key=lambda n: n.weight, reverse=True)
@@ -25,29 +28,48 @@ class Cluster:
                 available = node
                 break
         return available
+
+
+    def wait_node(self):
+        with self.lock:
+            start_time = datetime.now()
+            while datetime.now() - start_time < timedelta(minutes=4):
+                print("Waiting for a available node...")
+                time.sleep(1) # wait a second before trying again
+                node = self.select_node()
+                if node:
+                    return node
+            raise HTTPException(status_code=503, detail="No available nodes")
+
+    def setup_container(self, node, image):
+        with self.lock:
+            docker = Docker(node.client)
+            container = docker.get_container_by_image(image)
+            if not container:
+                container = docker.run_container(image)
+            else:
+                container = docker.start_or_restart_container(container)
+            return container
     
-    def run_prediction(self, prediction: Predictions):
-        node = self.available_node()
-        # loop until we find an available node or all nodes are offline
-        while True:
-            time.sleep(1) # wait a second before trying again
-            node = self.available_node()
-            if node:
-                break
-        # container routine
+    def queue_prediction(self, prediction: Predictions):
+        image = prediction.image
+        # wait for a available node
+        node = self.wait_node()
         node.state = NodeState.busy.value
-        node.prediction = prediction
-        docker = Docker(node.client)
-        container = docker.get_container_by_image(prediction.image)
-        if not container:
-            container = docker.run_container(prediction.image)
-        else:
-            container = docker.start_or_restart_container(container)
-        print("Container running")
+        # setup the docker container on that node and get it ready for use
+        container = self.setup_container(node, image)
+        # create a new Cog (container object) and run the prediction on it
         cog = Cog(node, prediction, container)
         health = cog.health_check()
         if health:
             result = cog.run()
             return result
         node.state = NodeState.available.value
+    
+    def queue_openai_spec(self, image: str):
+        # wait for a available node
+        node = self.wait_node()
+        # setup the docker container on that node and get it ready for use
+        container = self.setup_container(node, image)
+        
     
