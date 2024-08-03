@@ -1,4 +1,5 @@
 from enum import Enum
+from threading import Lock
 import sqlite3
 con = sqlite3.connect("/app/data/conducteur.db", check_same_thread=False)
 cur = con.cursor()
@@ -10,6 +11,7 @@ class PredictionStatus(Enum):
     failed = "failed"
         
 class Predictions:
+    _lock = Lock()
     def __init__(self, user:str, image:str, input:str ,started:str, finished:str = None, duration:float = None):
             self.id = None  # will be set by the database when inserting a new row.
             self.user = user
@@ -35,8 +37,9 @@ class Predictions:
             self.id = cur.lastrowid
             
     def update(self):
-        cur.execute("UPDATE prediction SET status = ? , finished = ? , duration = ? WHERE id = ?", (self.status, self.finished, self.duration, self.id))
-        con.commit()
+        with self._lock:
+            cur.execute("UPDATE prediction SET status = ? , finished = ? , duration = ? WHERE id = ?", (self.status, self.finished, self.duration, self.id))
+            con.commit()
 
     @staticmethod
     def filter_by_user(user: str):
