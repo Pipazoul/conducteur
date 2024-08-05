@@ -56,6 +56,9 @@
 
         let userFilteredPredictions = filterByUser();
 
+        // reverse the array to get the latest predictions first
+        userFilteredPredictions.reverse();
+
         filteredPredictions = userFilteredPredictions.filter(prediction => {
             const finishedTime = new Date(prediction.finished);
             return finishedTime && finishedTime > timeLimit;
