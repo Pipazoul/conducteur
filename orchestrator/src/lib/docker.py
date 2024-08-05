@@ -25,7 +25,6 @@ class Docker:
             self.stop_containers()
             container.start()
             container.reload()
-        port_mappings = container.attrs["NetworkSettings"]["Ports"]
         return container
     
     def get_container_by_image(self,image):
@@ -40,21 +39,37 @@ class Docker:
         self.stop_containers()
         port = random.randint(6000, 6600)
         try:
-            container = self.client.containers.run(image, detach=True, ports={"5000/tcp": port}, device_requests=[docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])])
+            print("Running image", image)
+            container = self.client.containers.run(
+                image, detach=True, ports={"5000/tcp": port}, 
+                device_requests=[docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])])
 
-            # Wait for the container to be in the 'running' state
             start_time = time.time()
+            print("container", container.status)
             while container.status != 'running':
                 if time.time() - start_time > timeout:
-                    raise HTTPException(status_code=403, detail=f'Timeout: Container {container.id} did not start within {timeout} seconds')
+                    return HTTPException(
+                        status_code=403, 
+                        detail=f'Timeout: Container {container.id} did not start within {timeout} seconds', 
+                    )
+                
                 print(f'Waiting for container {container.id} to start...')
                 time.sleep(1)
                 container.reload()
 
             return container
-        except(docker.errors.APIError) as e:
-            raise HTTPException(status_code=403, detail="Could not run the docker image due to "+str(e))
 
+        except(docker.errors.APIError) as e:
+            if 'NAME_UNKNOWN' in str(e):
+                return HTTPException(
+                    status_code=404, 
+                    detail="The Docker image you are trying to run does not exist.", 
+                )
+            else:
+                return HTTPException(
+                    status_code=403, 
+                    detail="Could not run the Docker image due to "+str(e), 
+                )
 
     
     def get_container(self,container_id):
