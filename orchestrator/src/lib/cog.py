@@ -6,10 +6,12 @@ import os
 TIMEOUT = float(os.getenv('TIMEOUT', '1'))  # minutes
 
 
+
 from lib.predictions import Predictions, PredictionStatus
 from lib.nodes import NodeState
 class Cog:
     def __init__(self, node, prediction: Predictions, container):
+        print("Cog init")
         self.node = node
         self.prediction = prediction
         self.container = container
@@ -22,25 +24,28 @@ class Cog:
                 self.port = port_info["HostPort"]
     
     def health_check(self):
+        print(f'Checking health of {self.host}:{self.port}')
         start_time = datetime.now()
         while datetime.now() - start_time < timedelta(minutes=TIMEOUT):
             try:
-                response = requests.get(f"http://{self.host}:{self.port}/health-check")
+                response = requests.get(f"http://{self.host}:{self.port}/health-check", timeout=TIMEOUT*60)
                 if response.status_code == 200 and response.json().get("status") == "SETUP_FAILED":
                     self.container.stop()
                     self.container.remove()
-                    self.node.state = NodeState.available
+                    self.node.state = NodeState.available.value
                     raise HTTPException(status_code=500, detail=f'Cog setup failed with error {response.json().get("setup").get("logs")}')
                 if response.status_code == 200 and response.json().get("status") == "READY":
                     return True
             except requests.exceptions.RequestException:
                 pass
             time.sleep(0.2)
+        self.node.state = NodeState.available.value
         self.container.stop()
 
-        self.node.state = NodeState.available
+        self.node.state = NodeState.available.value
         raise HTTPException(status_code=403, detail="The health_check timed out check your container logs for more information")
     def run(self):
+        print(f'Running prediction {self.host}:{self.port}')
         header = {
             "Content-Type": "application/json",
         }
@@ -49,7 +54,7 @@ class Cog:
         }
         self.prediction.status = PredictionStatus.running.value
         self.prediction.update()
-        response = requests.post(f"http://{self.host}:{self.port}/predictions", json=payload, headers=header)
+        response = requests.post(f"http://{self.host}:{self.port}/predictions", json=payload, headers=header,timeout=TIMEOUT*60)
         if response.status_code == 200:
             results = response.json()
             if "metrics" in results and "predict_time" in results["metrics"]:
@@ -68,7 +73,8 @@ class Cog:
             raise HTTPException(status_code=500, detail=f"Error the container returned a {response.status_code}")
         
     def get_openapi_specs(self):
-        response = requests.get(f"http://{self.host}:{self.port}/openapi.json")
+        print(f'Getting open api specs {self.host}:{self.port}')
+        response = requests.get(f"http://{self.host}:{self.port}/openapi.json",timeout=TIMEOUT*60)
         if response.status_code == 200:
             results = response.json()
             self.node.state = NodeState.available.value
