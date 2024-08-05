@@ -55,7 +55,7 @@ class Cog:
         self.prediction.status = PredictionStatus.running.value
         self.prediction.update()
         response = requests.post(f"http://{self.host}:{self.port}/predictions", json=payload, headers=header,timeout=TIMEOUT*60)
-        if response.status_code == 200:
+        if response.status_code == 200 and response.json()["status"] == "succeeded":
             results = response.json()
             if "metrics" in results and "predict_time" in results["metrics"]:
                 self.prediction.finished = datetime.now()
@@ -65,12 +65,13 @@ class Cog:
                 self.node.state = NodeState.available.value
             return results
         else:
+            print("Failed to run prediction", response)
             self.prediction.finished = datetime.now()
             self.prediction.duration = 0
-            self.prediction.status = PredictionStatus.failed
+            self.prediction.status = PredictionStatus.failed.value
             self.prediction.update()
             self.node.state = NodeState.available.value
-            raise HTTPException(status_code=500, detail=f"Error the container returned a {response.status_code}")
+            return HTTPException(status_code=500, detail=f"Error the container returned a {response.status_code}")
         
     def get_openapi_specs(self):
         print(f'Getting open api specs {self.host}:{self.port}')
