@@ -51,10 +51,13 @@ class Cluster:
         with self.lock:
             print("Setting up a new container on node", node.name, "for image", image)
             docker = Docker(node.client)
+            print('Check if image exists in the node')
             container = docker.get_container_by_image(image)
             if not container:
+                print('Image not found on the node run pull')
                 container = docker.run_container(image)
             else:
+                print('Image found on the node run start')
                 container = docker.start_or_restart_container(container)
             return container
     
@@ -66,6 +69,11 @@ class Cluster:
         node.state = NodeState.busy.value
         # setup the docker container on that node and get it ready for use
         container = self.setup_container(node, image)
+        
+        # check is is string
+        if isinstance(container, Exception):
+            node.state = NodeState.available.value
+            raise container
         # create a new Cog (container object) and run the prediction on it
         cog = Cog(node, prediction, container)
         health = cog.health_check()
@@ -78,11 +86,19 @@ class Cluster:
         print("Queueing openai spec...")
         # wait for a available node
         node = self.wait_node()
+        print("Node selected", node.name)
         node.state = NodeState.busy.value
         # setup the docker container on that node and get it ready for use
         container = self.setup_container(node, image)
+        if isinstance(container, Exception):
+            node.state = NodeState.available.value
+            raise container
+
+        print("Container setup", container)
         cog = Cog(node, {}, container)
+        print("Cog created")
         health = cog.health_check()
+        print(f"Health check {health}")
         if health:
             result = cog.get_openapi_specs()
             return result
