@@ -48,36 +48,29 @@ export class Conducteur {
   }
 
   async status(): Promise<Status> {
-    const response = await fetch(`${this.baseUrl}/status`, {
-      method: 'GET',
-      headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${this.token}`
-            },
-    });
-    // check if response is ok
-    if (!response.ok) {
-      return Status.offline;
-    }
-    const data = await response.json();
-    // for each item in the array, if on item state is available set it to online if all items are busy then return busy else return offline
-    let status = Status.unknown;
-    let allBusy = true;
-    for (let item of data) {
-      if (item.state == "available") {
-        status = Status.available;
-        allBusy  = false;
-        break;
-      } else if (item.state == "busy") {
-        continue;
-      } else {
-        status = Status.offline;
+    try {
+      const response = await fetch(`${this.baseUrl}/status`, {
+        method: 'GET',
+        headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.token}`
+              },
+      });
+      // check if response is ok
+      if (!response.ok) {
+        return Status.offline;
+      }
+      const data = await response.json();
+      switch (data.status) {
+        case 'available': return Status.available;
+        case 'offline': return Status.offline;
+        default: throw  Status.unknown;
       }
     }
-    if (allBusy)  {
-      status = Status.busy;
+    catch(e) {
+      console.error('Error in status', e);
+      return Status.offline;
     }
-    return status;
   }
 }
 
@@ -86,9 +79,3 @@ module.exports = {
   Conducteur
 };
 
-
-let baseUrl = 'https://conducteur.distributed.homes';
-let token = "trckbJz828tztR2PWALD9dAqVRuCd"
-let conducteur = new Conducteur(baseUrl, token);
-
-console.log("Status: ", conducteur.status().then((res) => console.log(res)));
