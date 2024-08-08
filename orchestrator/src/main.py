@@ -68,6 +68,16 @@ async def get_image_openapi(
     return await run_in_threadpool(cluster.queue_openai_spec, image)
 
 
+@app.get("/status")
+async def status(
+    request: Request,
+):
+    token = Authenticate.extract_token(request)
+    Authenticate.verify_existing_token(token)
+
+    return {"status": cluster.global_status()}
+
+
 @app.get("/predictions/",include_in_schema=False)
 async def list_predictions(
     request: Request,
