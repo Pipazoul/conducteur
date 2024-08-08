@@ -1,9 +1,12 @@
 {
   "name": "conducteur",
-  "version": "0.0.1",
+  "version": "0.0.6",
   "description": "Javascript client for Conducteur",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
+    "build": "tsc",
+    "dev": "nodemon src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -20,5 +23,11 @@
   "bugs": {
     "url": "https://github.com/Pipazoul/conducteur/issues"
   },
-  "homepage": "https://github.com/Pipazoul/conducteur#readme"
+  "homepage": "https://github.com/Pipazoul/conducteur#readme",
+  "devDependencies": {
+    "@types/node": "^22.1.0",
+    "nodemon": "^3.1.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  }
 }
