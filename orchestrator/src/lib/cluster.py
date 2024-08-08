@@ -103,4 +103,26 @@ class Cluster:
             result = cog.get_openapi_specs()
             return result
         node.state = NodeState.available.value
+
     
+    def global_status(self):
+        # Initialize variables
+        status = NodeState.unknown.value
+        all_busy = True
+        
+        # Iterate over each node in the cluster
+        for node in self.nodes:
+            if node.state == NodeState.available.value:
+                status = NodeState.available.value
+                all_busy = False
+                break  # Stop iterating if we find an available node
+            elif node.state == NodeState.busy.value:
+                continue  # Skip to the next iteration if a node is busy
+            else:
+                status = NodeState.offline.value
+        
+        # If all nodes are busy, set the global status to busy
+        if all_busy:
+            status = NodeState.busy.value
+        
+        return status

@@ -1,6 +1,6 @@
 {
   "name": "conducteur",
-  "version": "0.0.6",
+  "version": "0.0.8",
   "description": "Javascript client for Conducteur",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
