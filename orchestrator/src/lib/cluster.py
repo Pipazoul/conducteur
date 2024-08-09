@@ -2,6 +2,7 @@ from lib.docker import Docker
 from lib.cog import Cog
 from lib.nodes import Node, NodeState
 from lib.predictions import Predictions
+from lib.co2 import Co2
 import time
 from datetime import datetime, timedelta
 from fastapi import HTTPException
@@ -10,12 +11,15 @@ import os
 TIMEOUT = float(os.getenv('TIMEOUT', '1'))  # minutes
 
 class Cluster:
-    def __init__(self, nodes):
+    def __init__(self, nodes, monitor_port=4560, carbon_intensity=100):
         self.lock = threading.Lock()
         self.nodes = [Node(name=n['name'], user=n['user'], host=n['host'], rsa=n['rsa'], weight=n['weight']) for n in nodes]
         for node in self.nodes:
             node.connect()
-    
+            # setup co2 monitor for that node
+            print("Pulling c02 monitor container, it can take a while...")
+            co2 = self.setup_monitor_container(node, port=monitor_port, carbon_intensity=carbon_intensity)
+            node.co2 = co2
     def disconnect_all(self):
         for node in self.nodes:
             node.disconnect()
@@ -47,7 +51,7 @@ class Cluster:
                     return node
             raise HTTPException(status_code=503, detail="No available nodes")
 
-    def setup_container(self, node, image):
+    def setup_container(self, node, image, port=None):
         with self.lock:
             print("Setting up a new container on node", node.name, "for image", image)
             docker = Docker(node.client)
@@ -55,12 +59,36 @@ class Cluster:
             container = docker.get_container_by_image(image)
             if not container:
                 print('Image not found on the node run pull')
-                container = docker.run_container(image)
+                if not port:
+                    container = docker.run_container(image)
+                else:
+                    container = docker.run_container(image, port=port)
             else:
                 print('Image found on the node run start')
                 container = docker.start_or_restart_container(container)
             return container
     
+    def setup_monitor_container(self, node, port, carbon_intensity):
+        image = "yassinsiouda/cog-gpu-monitor:latest"
+        container =  self.setup_container(node, image, port)
+    
+        if isinstance(container, Exception):
+            node.state = NodeState.available.value
+            raise container
+        prediction = Predictions(
+            image = image,
+            user="monitor",
+            started=datetime.now(),
+            input= {}
+        )
+        cog = Cog(node, prediction, container)
+        health = cog.health_check()
+        if health:
+            return Co2(cog,carbon_intensity)
+        raise HTTPException(status_code=503, detail="Failed to set up monitor container")
+
+    
+
     def queue_prediction(self, prediction: Predictions):
         print("Queueing prediction...")
         image = prediction.image
@@ -78,7 +106,12 @@ class Cluster:
         cog = Cog(node, prediction, container)
         health = cog.health_check()
         if health:
+            node.co2.start()
             result = cog.run()
+            node.co2.stop()
+            prediction.co2 = node.co2.grams_emitted
+            print("CO2 emitted by prediction: ", node.co2.grams_emitted, " grams")
+            prediction.update()
             return result
         node.state = NodeState.available.value
     

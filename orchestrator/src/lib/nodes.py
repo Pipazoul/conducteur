@@ -12,7 +12,7 @@ class NodeState(Enum):
     busy = "busy"
 
 class Node:
-    def __init__(self, name, user, host, rsa, weight, client=None):
+    def __init__(self, name, user, host, rsa, weight, co2=None,client=None):
         self.lock = threading.Lock()
         self.name = name
         self.user = user
@@ -22,6 +22,7 @@ class Node:
         self.client = client
         self.state = NodeState.unknown.value
         self.prediction: Predictions = None
+        self.co2 = co2
     def add_ssh_host_key(self,host):
         known_hosts_path = "/root/.ssh/known_hosts"
         subprocess.run(["ssh-keyscan", "-H", host], stdout=open(known_hosts_path, "a"))
