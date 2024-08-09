@@ -15,13 +15,11 @@ class Co2:
         self.running = True
         self.thread = Thread(target=self._run)
         self.thread.start()
-        print("CO2 calculation started")
 
     def _run(self):
         while self.running:
             power = 0
             result = self.cog.run()
-            print(result)
             result = json.loads(result["output"])
             power = result["power"] # get the power consumption from the output of cog run() function, it's in string format like '22.59 W', so we need to convert it into float type for further calculation
             power = float(power[:-4])  # remove ' W' at the end of the string, convert it t
@@ -33,12 +31,10 @@ class Co2:
         self.running = False
         if self.thread and self.thread.is_alive():
             self.thread.join()  # wait for the thread to finish
-            print("CO2 calculation stopped")
             # Assuming self.watts is accumulated power consumption in watts and self.duration is in seconds.
             # Convert power usage to kWh then multiply by carbon intensity.
             energy_consumed = (self.watts * self.duration) / (3600 * 1000)  # from watt-seconds to kilowatt-hours
             # return 3 digits after the decimal point
             self.grams_emitted = round((energy_consumed * self.carbon_intensity), 3)   # in grams of CO2e (equivalent to carbon dioxide equivalent)
-            print("in co2 class Total grams of CO2 emitted: ", self.grams_emitted)
     def calculate(self, energy_consumed):
         return (energy_consumed * self.carbon_intensity)
