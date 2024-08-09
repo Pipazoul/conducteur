@@ -34,10 +34,11 @@ class Docker:
                 return container
         return None
 
-    def run_container(self, image, timeout=30):
+    def run_container(self, image, timeout=30, port=None):
         print("Running containers")
         self.stop_containers()
-        port = random.randint(6000, 6600)
+        if not port:
+            port = random.randint(6000, 6600)
         try:
             print("Running image", image)
             container = self.client.containers.run(

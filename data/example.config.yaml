@@ -1,8 +1,7 @@
-logs:
-    jobsPath: "./logs/jobs.json"
-    nodesPath: "./logs/nodes.json"
-    predictionsPath: "./logs/predictions.json"
-
+# to find your carbon intensity for your country check https://ourworldindata.org/grapher/carbon-intensity-electricity
+co2:
+    - port: 4560 # should not be between 6000 and 6600
+    - carbon_intensity: 56 # in gCO2eq per kWh
 
 nodes:
     -

@@ -12,7 +12,7 @@ class PredictionStatus(Enum):
         
 class Predictions:
     _lock = Lock()
-    def __init__(self, user:str, image:str, input:str ,started:str, finished:str = None, duration:float = None):
+    def __init__(self, user:str, image:str, input:str ,started:str, finished:str = None, duration:float = None, co2=None, status:PredictionStatus = PredictionStatus.pending):
             self.id = None  # will be set by the database when inserting a new row.
             self.user = user
             self.image = image
@@ -21,6 +21,7 @@ class Predictions:
             self.started = started
             self.finished = finished
             self.duration = duration
+            self.co2 = co2
             cur.execute('''
                 CREATE TABLE IF NOT EXISTS prediction(
                 id INTEGER PRIMARY KEY,
@@ -29,7 +30,8 @@ class Predictions:
                 status TEXT NOT NULL,
                 started DATETIME NOT NULL,
                 finished DATETIME,
-                duration FLOAT);
+                duration FLOAT,
+                co2 FLOAT);
             ''')
             cur.execute("INSERT INTO prediction (user,image,status,started,finished,duration) VALUES (?, ?, ?, ?, ?, ?)", 
                     (self.user, self.image, self.status, self.started, self.finished, self.duration))
@@ -38,7 +40,7 @@ class Predictions:
             
     def update(self):
         with self._lock:
-            cur.execute("UPDATE prediction SET status = ? , finished = ? , duration = ? WHERE id = ?", (self.status, self.finished, self.duration, self.id))
+            cur.execute("UPDATE prediction SET status = ? , finished = ? , duration = ?, co2 = ? WHERE id = ?", (self.status, self.finished, self.duration, self.co2, self.id))
             con.commit()
 
     @staticmethod
@@ -56,6 +58,7 @@ class Predictions:
                 'started': str(row[4]),
                 'finished': str(row[5]),
                 'duration': float(row[6]) if row[6] else None,
+                'co2': float(row[7]) if row[7] else None,
             })
 
         return data

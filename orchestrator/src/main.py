@@ -33,7 +33,7 @@ app.mount("/_app", StaticFiles(directory="public/_app"), name="_app")
 
 auth = Authenticate()
 
-cluster = Cluster(config.nodes)
+cluster = Cluster(config.nodes, config.co2["port"],config.co2["carbon_intensity"])
 
 @app.post("/predict")
 async def predict(
