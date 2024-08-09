@@ -53,6 +53,7 @@ async def predict(
         input= input_data,
         started= datetime.datetime.now(),
     )
+    new_prediction.create()
     return await run_in_threadpool(cluster.queue_prediction, new_prediction)
 
 @app.post("/image/openapi")

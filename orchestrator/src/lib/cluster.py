@@ -111,7 +111,9 @@ class Cluster:
             node.co2.stop()
             prediction.co2 = node.co2.grams_emitted
             print("CO2 emitted by prediction: ", node.co2.grams_emitted, " grams")
+            prediction.node = node.name
             prediction.update()
+            result["co2"] = prediction.co2
             return result
         node.state = NodeState.available.value
     
