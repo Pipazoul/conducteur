@@ -76,8 +76,8 @@ export class Conducteur {
       const data = await response.json();
       switch (data.status) {
         case 'available': return Status.available;
-        case 'offline': return Status.offline;
-        default: throw  Status.unknown;
+        case 'busy': return Status.busy;
+        default: throw  Status.offline;
       }
     }
     catch(e) {
