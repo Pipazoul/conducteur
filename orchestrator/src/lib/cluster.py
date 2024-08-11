@@ -110,13 +110,13 @@ class Cluster:
             node.co2.start()
             result = cog.run()
             node.co2.stop()
+            node.state = NodeState.available.value
             prediction.co2 = node.co2.grams_emitted
             print("CO2 emitted by prediction: ", node.co2.grams_emitted, " grams")
             prediction.node = node.name
             prediction.update()
             result["co2"] = prediction.co2
             return result
-        node.state = NodeState.available.value
     
     def queue_openai_spec(self, image: str):
         print("Queueing openai spec...")
