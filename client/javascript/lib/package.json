@@ -1,6 +1,6 @@
 {
   "name": "conducteur",
-  "version": "0.0.9",
+  "version": "0.1.0",
   "description": "Javascript client for Conducteur",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/Pipazoul/conducteur#readme",
   "devDependencies": {
-    "@types/node": "^22.1.0",
+    "@types/node": "^22.2.0",
     "nodemon": "^3.1.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4"

@@ -107,6 +107,16 @@ async def list_users(
     Authenticate.verify_token_admin(token)
     return Authenticate.get_all_users()
 
+
+@app.post("/user/")
+async def return_user(
+    request: Request,
+):
+    token = Authenticate.extract_token(request)
+    Authenticate.verify_existing_token(token)
+    return Authenticate.get_user(token)
+
+
 @app.post("/user/predictions")
 async def list_users(
     request: Request,

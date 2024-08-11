@@ -47,3 +47,9 @@ class Authenticate:
             user = entry['name']
             users.append(user)
         return users
+    @staticmethod
+    def get_user(token):
+        for entry in Authenticate.config.tokens:
+            if token == entry['token']:
+                return entry
+            
