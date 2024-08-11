@@ -13,6 +13,7 @@
       started: string; // YYYY-MM-DD HH:MM:SS
       finished: string; // YYYY-MM-DD HH:MM:SS
       duration: number;
+      co2: number;
     }
     
     let filteredPredictions: Prediction[] = [];
@@ -35,7 +36,6 @@
   
     $: {
        if($predictions.length > 0) {
-        console.log('LOL', $predictions);
            filter();
        }
     }
@@ -63,6 +63,12 @@
             const finishedTime = new Date(prediction.finished);
             return finishedTime && finishedTime > timeLimit;
         });
+
+        // get the pending predictions they have the status pending
+        const pendingPredictions = userFilteredPredictions.filter(prediction => prediction.status === 'pending');
+        // get running predictions they have the status running
+        const runningPredictions = userFilteredPredictions.filter(prediction => prediction.status === 'running');
+        filteredPredictions = [...pendingPredictions,...runningPredictions, ...filteredPredictions];
     }
 
     function filterByUser() {
@@ -144,6 +150,7 @@
           </Svg>
           <Tooltip header={(data) => data.user} let:data>
             <TooltipItem label="User" value={data.user} />
+            <TooltipItem label="Name" value={data.image.substring(0, 30)+ "..."} />
             <TooltipItem label="Date" value={data.finished} />
             <TooltipItem label="duration" value={data.duration} />
             <TooltipItem label="Status" value={data.status} />
@@ -159,15 +166,20 @@
                   <th>User</th> 
                   <th>Image</th> 
                   <th>Date</th> 
-                  <th>duration</th> 
+                  <th>co2 used(g)</th>
+                  <th>duration (sec)</th> 
               </tr>
             </thead> 
             <tbody>
               {#each filteredPredictions as prediction}
                 <tr>
                   <td>
-                      {#if prediction.status === 'succeeded'}
+                      {#if prediction.status === 'completed'}
                           <div class="bg-green-500 rounded-full w-2 h-2"></div>
+                      {:else if prediction.status === 'pending'}
+                        <div class="bg-blue-500 animate-ping  rounded-full w-2 h-2"></div>
+                      {:else if prediction.status === 'running'}
+                        <div class="bg-orange-500 animate-pulse  rounded-full w-2 h-2"></div>
                       {:else if prediction.status === 'failed'}
                           <div class="bg-red-500 rounded-full w-2 h-2"></div>
                       {:else}
@@ -176,8 +188,9 @@
                   </td>
                   <td>{prediction.user}</td>
                   <td>{prediction.image}</td>
-                  <td>{prediction.finished}</td>
-                  <td>{prediction.duration}</td>
+                  <td>{prediction.finished || "No date"}</td>
+                  <td>{prediction.co2 || 0}</td>
+                  <td>{prediction.duration || 0}</td>
                 </tr>
               {/each}
             </tbody> 

@@ -78,6 +78,7 @@ class Cluster:
         prediction = Predictions(
             image = image,
             user="monitor",
+            node= node.name,
             started=datetime.now(),
             input= {}
         )

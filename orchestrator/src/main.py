@@ -111,9 +111,11 @@ async def list_users(
 async def list_users(
     request: Request,
 ):
+    data = await request.json()
+    user = data["user"]
     token = Authenticate.extract_token(request)
     Authenticate.verify_existing_token(token)
-    Authenticate.verify_token_admin(token)
+    Authenticate.verify_token_user(token,user)
     data = await request.json()
     user = data["user"]
     return Predictions.filter_by_user(user)
