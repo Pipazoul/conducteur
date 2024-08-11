@@ -18,6 +18,10 @@ class Co2:
 
     def _run(self):
         while self.running:
+            # reset values
+            self.grams_emitted = 0
+            self.watts= 0
+            self.duration = 0
             power = 0
             result = self.cog.run()
             result = json.loads(result["output"])
