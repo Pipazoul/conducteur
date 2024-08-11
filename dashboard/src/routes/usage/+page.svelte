@@ -31,7 +31,7 @@
         // convert to DD-MM-YYYY
         const startStr = `${start.getDate()}-${start.getMonth() + 1}-${start.getFullYear()}`
         const endStr = `${end.getDate()}-${end.getMonth() + 1}-${end.getFullYear()}`
-        const res = await fetch(`${$url}user/predictions/`, {
+        const res = await fetch(`${$url}user/predictions`, {
             method: 'POST',
             headers: { 
                 'Authorization': `Bearer ${$token}`,
@@ -115,7 +115,7 @@
     </select>
     <h2 class="mt-4">Overall Usage</h2>
     <h1>Total Duration: {formatDuration(total_duration)}</h1>
-    <h1>Total Co2: {total_co2} g</h1>
+    <h1>Total Co2: {total_co2.toFixed(3)} g</h1>
 
     <div class="border rounded-md mt-4 p-4">
         Total duration: {formatDuration(predictions?.totalDuration)}

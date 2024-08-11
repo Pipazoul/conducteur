@@ -6,6 +6,12 @@ export enum Status {
     busy = "busy"
 }
 
+export interface User {
+  name: string,
+  token: string,
+  scope?: Array<string>,
+}
+
 export interface PredictionResponse {
   output: string;
   id: string | null;
@@ -20,8 +26,15 @@ export interface PredictionResponse {
   output_file_prefix: string | null;
   webhook_events_filter: Array<string>;
   webhook: string | null;
+  co2: string | null;
 }
 
+
+export interface Predictions {
+  total_co2: number;
+  total_duration: number;
+  predictions: Array<PredictionResponse>;
+}
 
 export class Conducteur {
   public baseUrl: string;
@@ -72,10 +85,53 @@ export class Conducteur {
       return Status.offline;
     }
   }
+  async user(): Promise<User>  {
+    const response = await fetch(`${this.baseUrl}/user`, {
+      method: 'POST',
+      headers:  {
+                'Content-Type':  'application/json',
+                'Authorization': `Bearer ${this.token}`
+              },
+              });
+    const data = await response.json();
+    return data;
+   }
+
+  async predictions(start?:string, end?: string): Promise<Predictions> {
+    // if start or and is provider verify format DD-MM-YYYY and throw error if not valid
+    const dateRegex = /^\d{2}-\d{2}-\d{4}$/;
+    const user = (await this.user()).name
+    let payload  = {};
+    if (start && end){
+      console.log("start and end", start, end)
+      if (!dateRegex.test(start) || !dateRegex.test(end)) {
+        throw new Error('Invalid date format');
+      }
+      payload = {
+        start,
+        end,
+        user
+      }
+    }
+    else {
+      payload = {user};
+    }
+    
+    const response = await fetch(`${this.baseUrl}/user/predictions/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.token}`
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    return data;
+  }
+
 }
 
 
 module.exports = {
   Conducteur
 };
-
