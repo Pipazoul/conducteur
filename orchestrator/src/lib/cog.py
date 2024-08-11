@@ -42,7 +42,6 @@ class Cog:
         self.node.state = NodeState.available.value
         self.container.stop()
 
-        self.node.state = NodeState.available.value
         self.prediction.finished = datetime.now()
         self.prediction.status = PredictionStatus.failed.value
         self.prediction.update()
@@ -65,7 +64,6 @@ class Cog:
                 self.prediction.duration = results["metrics"]["predict_time"]
                 self.prediction.status = PredictionStatus.completed.value
                 self.prediction.update()
-                self.node.state = NodeState.available.value
             return results
         else:
             print("Failed to run prediction", response)
