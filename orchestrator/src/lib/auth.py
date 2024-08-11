@@ -31,6 +31,11 @@ class Authenticate:
                 return entry['scope']
         raise HTTPException(status_code=403, detail="Not Authorized")
     
+    def verify_token_user(token: str, name: str):
+        for entry in Authenticate.config.tokens:
+            if token == entry['token'] and name == entry['name'] or "*" in entry['scope']:
+                return True
+        raise HTTPException(status_code=403, detail="Not Authorized")
     @staticmethod
     def get_all_tokens():
         return Authenticate.config.tokens

@@ -44,8 +44,19 @@ export async function getPredictions() {
             const finishedTime = new Date(prediction.finished);
             return finishedTime >= oneDayAgo;
         });
+        // Get the pending predictions
+        const pendingPredictions = data.filter(prediction => {
+            return prediction.status === 'pending';
+        });
 
-        predictions.set(filteredPredictions);
+        // Get the running predictions
+        const runningPredictions = data.filter(prediction => {
+            return prediction.status === 'running';
+        });
+
+        predictions.set([...pendingPredictions,...runningPredictions,...filteredPredictions]);
+
+        //predictions.set(filteredPredictions);
     } catch (error) {
         console.error(error);
     }

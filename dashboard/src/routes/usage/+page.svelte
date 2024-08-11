@@ -13,6 +13,9 @@
     }
     let currentFilter = '1m'
 
+    let total_co2 = 0;
+    let total_duration = 0;
+
 
     $: {
         if($users.length > 0) {
@@ -36,7 +39,9 @@
             body: JSON.stringify({"user": $users[currentUser], "start": startStr, "end": endStr})
         })
         const data = await res.json()
-        predictions = data
+        total_co2 = data.total_co2
+        total_duration = data.total_duration
+        predictions = data.predictions
         await imageDuration()
     }
 
@@ -109,6 +114,9 @@
         {/each}
     </select>
     <h2 class="mt-4">Overall Usage</h2>
+    <h1>Total Duration: {formatDuration(total_duration)}</h1>
+    <h1>Total Co2: {total_co2} g</h1>
+
     <div class="border rounded-md mt-4 p-4">
         Total duration: {formatDuration(predictions?.totalDuration)}
         <div class="divider"></div>

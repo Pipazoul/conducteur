@@ -43,6 +43,9 @@ class Cog:
         self.container.stop()
 
         self.node.state = NodeState.available.value
+        self.prediction.finished = datetime.now()
+        self.prediction.status = PredictionStatus.failed.value
+        self.prediction.update()
         raise HTTPException(status_code=403, detail="The health_check timed out check your container logs for more information")
     def run(self):
         print(f'Running prediction {self.host}:{self.port}')
