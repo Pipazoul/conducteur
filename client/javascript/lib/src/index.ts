@@ -117,7 +117,7 @@ export class Conducteur {
       payload = {user};
     }
     
-    const response = await fetch(`${this.baseUrl}/user/predictions/`, {
+    const response = await fetch(`${this.baseUrl}/user/predictions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
