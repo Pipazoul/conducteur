@@ -35,7 +35,7 @@ auth = Authenticate()
 
 cluster = Cluster(config.nodes, config.co2["port"],config.co2["carbon_intensity"])
 
-@app.post("/predict")
+@app.post("/predict",include_in_schema=False)
 async def predict(
     request: Request, 
 ):
@@ -56,7 +56,7 @@ async def predict(
     new_prediction.create()
     return await run_in_threadpool(cluster.queue_prediction, new_prediction)
 
-@app.post("/image/openapi")
+@app.post("/image/openapi",include_in_schema=False)
 async def get_image_openapi(
     request: Request, 
 ):
@@ -69,7 +69,7 @@ async def get_image_openapi(
     return await run_in_threadpool(cluster.queue_openai_spec, image)
 
 
-@app.get("/status")
+@app.get("/status",include_in_schema=False)
 async def status(
     request: Request,
 ):
@@ -89,7 +89,7 @@ async def list_predictions(
     predictions = Predictions.get_all()
     return(predictions)
 
-@app.get("/tokens")
+@app.get("/tokens",include_in_schema=False)
 async def list_tokens(
     request: Request,
 ):
@@ -98,7 +98,7 @@ async def list_tokens(
     Authenticate.verify_token_admin(token)
     return Authenticate.get_all_tokens()
 
-@app.get("/users")
+@app.get("/users",include_in_schema=False)
 async def list_users(
     request: Request,
 ):
@@ -108,7 +108,7 @@ async def list_users(
     return Authenticate.get_all_users()
 
 
-@app.post("/user/")
+@app.post("/user")
 async def return_user(
     request: Request,
 ):
