@@ -96,8 +96,29 @@ class Predictions:
             })
 
         return data
-
-    
+    # get one prediction by id
+    @staticmethod
+    def get(id: int):
+        cur.execute("SELECT * FROM prediction WHERE id = ?", (id,))
+        row = cur.fetchone()
+        if not row:
+            return None
+        return {
+                'id': int(row[0]),
+                 'user': row[1],
+                 'image': row[2],
+                 'status': row[3],
+                 'started': str(row[4]),
+                 'node': str(row[5]),
+                 'finished': str(row[6]),
+                 'duration': float(row[7]) if row[7] else None,
+                 'co2': float(row[8]) if row[8] else None,
+             }
+    # delete one prediction by id
+    @staticmethod
+    def delete(id: int):
+        cur.execute("DELETE FROM prediction WHERE id = ?", (id,))
+        con.commit()
 
         
 

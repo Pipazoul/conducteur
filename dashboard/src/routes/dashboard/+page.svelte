@@ -78,6 +78,14 @@
         return $predictions;
     }
 
+    async function deletePrediction(id:string){
+      let response = await fetch(`${$url}prediction/${id}`, 
+      {method: 'DELETE', 
+      headers: {'Authorization': `Bearer ${$token}`}});
+      let data = await response.json();
+      return data;
+    }
+
 
   </script>
   
@@ -168,6 +176,7 @@
                   <th>Date</th> 
                   <th>co2 used(g)</th>
                   <th>duration (sec)</th> 
+                  <th>Delete</th>
               </tr>
             </thead> 
             <tbody>
@@ -191,6 +200,7 @@
                   <td>{prediction.finished || "No date"}</td>
                   <td>{prediction.co2 || 0}</td>
                   <td>{prediction.duration || 0}</td>
+                  <td><button on:click={deletePrediction(prediction.id)} >❌</button></td>
                 </tr>
               {/each}
             </tbody> 

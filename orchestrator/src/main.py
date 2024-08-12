@@ -3,6 +3,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
+from fastapi import HTTPException
+
 
 from lib.predictions import Predictions
 from lib.config import Config
@@ -88,6 +90,23 @@ async def list_predictions(
     Authenticate.verify_token_admin(token)
     predictions = Predictions.get_all()
     return(predictions)
+
+# delete prediction by id
+@app.delete("/prediction/{id}",include_in_schema=False)
+async def delete_prediction(
+    request: Request, 
+    id: str
+):
+    token = Authenticate.extract_token(request)
+    Authenticate.verify_existing_token(token)
+    Authenticate.verify_token_admin(token)
+    
+    prediction = Predictions.get(id)
+    if not prediction: 
+        raise HTTPException(status_code=404, detail="Prediction not found")
+        
+    Predictions.delete(id)
+    return {"message": "Prediction deleted"}
 
 @app.get("/tokens",include_in_schema=False)
 async def list_tokens(
