@@ -127,7 +127,7 @@ async def list_users(
     return Authenticate.get_all_users()
 
 
-@app.post("/user")
+@app.post("/user",include_in_schema=False)
 async def return_user(
     request: Request,
 ):
@@ -136,7 +136,7 @@ async def return_user(
     return Authenticate.get_user(token)
 
 
-@app.post("/user/predictions")
+@app.post("/user/predictions",include_in_schema=False)
 async def list_users(
     request: Request,
 ):
@@ -149,7 +149,7 @@ async def list_users(
     user = data["user"]
     return Predictions.filter_by_user(user)
 
-@app.get("/nodes")
+@app.get("/nodes",include_in_schema=False)
 async def list_nodes(
     request: Request,
 ):
