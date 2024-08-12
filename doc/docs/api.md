@@ -1,5 +1,9 @@
 # HTTP API Reference
 
+## Authentication
+All request are scope based and require an API Key. This key is sent in the header of every request as Bearer Token.
+
+
 ## Predictions
 
 Prediction represent an inference job waiting to be processed.or already processed with a result
@@ -57,5 +61,157 @@ Create/Delete/List Predictions
 }
 ```
 
-
 **Example curl** 
+```bash
+curl -X POST \
+  http://your-api-endpoint.com/predict \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_BEARER_TOKEN' \
+  -d '{"image": "your_cog_docker_image_name", "input": {"key": "value"}}'
+```
+
+</details>
+
+<details>
+ <summary><code>POST</code> <code><b>/predictions</b></code> <code>List all predictions</code></summary>
+
+##### Parameters
+None.
+
+##### Responses
+| http code | content-type       | response            |
+| --------- | ------------------ | ------------------- |
+| 200       | `application/json` | Predictions Objects |
+|           |                    |                     |
+
+
+**Prediction Objects**
+```json
+[
+    {
+        "id": number,
+        "user": "string",
+        "image": "string",
+        "status": "string",
+        "started": "string",
+        "node": "string",
+        "finished": "string",
+        "duration": number,
+        "co2": number
+    }, 
+    {
+        "id": number,
+        "user": "string",
+        "image": "string",
+        "status": "string",
+        "started": "string",
+        "node": "string",
+        "finished": "string",
+        "duration": number,
+        "co2": number
+    }, 
+]
+```
+
+**Example curl**
+
+```bash
+curl -X POST \
+  http://your-api-endpoint.com/predictions \
+  -H 'Authorization: Bearer YOUR_API_KEY' \
+  -H 'Content-Type: application/json'
+```
+
+</details>
+
+
+## User
+
+<details>
+<summary><code>POST</code> <code><b>/user</b></code> <code>Get user information based on token</code></summary>
+
+##### Parameters
+None.
+
+##### Responses
+| http code | content-type       | response     |
+| --------- | ------------------ | ------------ |
+| 200       | `application/json` | User Object |
+
+
+**User Object**
+
+```json
+{
+    "name": "string",
+    "token": "string",
+    "scope": ["string", "string"]
+}
+
+```
+
+**Example curl**
+
+```bash
+curl -X POST \
+  http://your-api-endpoint.com/user \
+  -H 'Authorization: Bearer YOUR_API_KEY' \
+  -H 'Content-Type: application/json'
+```
+
+</details>
+
+<details>
+<summary><code>POST</code>  <code><b>/user/predictions</b></code> <code>Returns all predictions made by a user.</code></summary>
+
+##### Parameters
+| Name | type     | data type | description           |
+| ---- | -------- | --------- | --------------------- |
+| user | required | string    | The name of the token |
+|      |          |           |                       |
+
+##### Responses
+| http code | content-type       | response               |
+| --------- | ------------------ | ---------------------- |
+| 200       | `application/json` | User Prediction Object |
+|           |                    |                        |
+
+**User Prediction Object**
+```json
+{
+    "total_co2": number,
+    "total_duration": number,
+    "predictions": [
+        {
+        "id": number,
+        "user": "string",
+        "image": "string",
+        "status": "string",
+        "started": "string",
+        "node": "string",
+        "finished": "string",
+        "duration": number,
+        "co2": number
+        },
+        {
+        "id": number,
+        "user": "string",
+        "image": "string",
+        "status": "string",
+        "started": "string",
+        "node": "string",
+        "finished": "string",
+        "duration": number,
+        "co2": number
+        }
+```
+
+
+**Example curl**
+```bash
+curl -X POST \
+  http://your-api-endpoint.com/user/predictions \
+  -H 'Authorization: Bearer YOUR_API_KEY' \
+  -d '{"user": "your token name"}'
+```
+</details>

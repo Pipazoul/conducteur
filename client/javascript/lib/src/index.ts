@@ -135,3 +135,11 @@ export class Conducteur {
 module.exports = {
   Conducteur
 };
+
+
+const apiUrl = 'https://conducteur.distributed.homes'
+const token = 'trckbJz828tztR2PWALD9dAqVRuCd'
+
+const conducteur = new Conducteur(apiUrl, token);
+
+console.log(conducteur.user().then((data) => console.log(data)));
