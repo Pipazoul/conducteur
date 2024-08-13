@@ -3,6 +3,7 @@
 ## Authentication
 All request are scope based and require an API Key. This key is sent in the header of every request as Bearer Token.
 
+## Image
 
 ## Predictions
 
@@ -125,6 +126,27 @@ curl -X POST \
 </details>
 
 
+<details>
+ <summary><code>DELETE</code> <code><b>/predictions/{id}</b></code> <code>Remove a prediction by id</code></summary>
+
+##### Responses
+| http code | content-type       | response                          |
+| --------- | ------------------ | --------------------------------- |
+| 200       | `application/json` | {"message": "Prediction deleted"} |
+| 404       | `application/json` | {"detail": "Not Found"}           |
+|           |                    |                                   |
+
+
+**Example curl**
+```bash
+curl -X DELETE \
+  http://your-api-endpoint.com/predictions/12345 \
+  -H 'Authorization: Bearer YOUR_API_KEY' \
+  -H 'Content-Type: application/json'
+```
+
+ </details>
+
 ## User
 
 <details>
@@ -213,5 +235,125 @@ curl -X POST \
   http://your-api-endpoint.com/user/predictions \
   -H 'Authorization: Bearer YOUR_API_KEY' \
   -d '{"user": "your token name"}'
+```
+</details>
+
+
+### Tokens
+
+<details>
+<summary><code>GET</code>  <code><b>/tokens</b></code> <code>Returns all tokens and their scopes.</code></summary>
+
+
+##### Parameters
+None.
+
+##### Responses
+| http code | content-type       | response     |
+| --------- | ------------------ | ------------ |
+| 200       | `application/json` | tokens array |
+|           |                    |              |
+
+
+**Tokens Array:**
+```json
+[
+  {
+    "name": "string",
+    "token": "string",
+    "scope": ["string","string"]
+  },
+  {
+    "name": "string",
+    "token": "string",
+    "scope": ["string","string"]
+  }
+]
+```
+
+**Example curl**
+```bash
+curl -X GET \
+  http://your-api-endpoint.com/tokens \
+  -H 'Authorization: Bearer YOUR_API_KEY' \
+  -H 'Content-Type: application/json'
+
+```
+
+</details>
+
+
+
+### Cluster
+
+Get the status of the cluster or the status of a specific node in the cluster.
+
+<details>
+<summary><code>GET</code>  <code><b>/nodes</b></code> <code>Returns all nodes and their status.</code></summary>
+
+
+##### Parameters
+None.
+
+##### Responses
+| http code | content-type       | response     |
+| --------- | ------------------ | ------------ |
+| 200       | `application/json` | Nodes array |
+|           |                    |              |
+
+
+**Nodes Array:**
+```json
+[
+  {
+    "name": "string",
+    "host": "string",
+    "weight": number,
+    "state": "string"
+  },
+    {
+    "name": "string",
+    "host": "string",
+    "weight": number,
+    "state": "string"
+  },
+]
+```
+
+**Example curl**
+```bash
+curl -X GET \
+  http://your-api-endpoint.com/nodes \
+  -H 'Authorization: Bearer YOUR_API_KEY' \
+  -H 'Content-Type: application/json'
+
+```
+
+</details>
+
+
+<details>
+
+<summary><code>GET</code>  <code><b>/status</b></code> <code>Get the cluster status</code></summary>
+
+
+##### Parameters
+None.
+
+##### Responses
+| http code | content-type       | response           |
+| --------- | ------------------ | ------------------ |
+| 200       | `application/json` | {"status": "string"} |
+|           |                    |                    |
+
+```
+
+**Example curl**
+```bash
+curl -X GET \
+  http://your-api-endpoint.com/status \
+  -H 'Authorization: Bearer YOUR_API_KEY' \
+  -H 'Content-Type: application/json'
+
 ```
 </details>
