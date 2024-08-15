@@ -1,7 +1,7 @@
 from lib.docker import Docker
 from lib.cog import Cog
 from lib.nodes import Node, NodeState
-from lib.predictions import Predictions
+from lib.predictions import Predictions, PredictionStatus
 from lib.co2 import Co2
 import time
 from datetime import datetime, timedelta
@@ -102,6 +102,8 @@ class Cluster:
         # check is is string
         if isinstance(container, Exception):
             node.state = NodeState.available.value
+            prediction.status = PredictionStatus.failed.value
+            prediction.update()
             raise container
         # create a new Cog (container object) and run the prediction on it
         cog = Cog(node, prediction, container)
