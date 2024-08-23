@@ -1,12 +1,12 @@
 from fastapi import FastAPI, Request, Header
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
 from fastapi import HTTPException
 
 
-from lib.predictions import Predictions
+from lib.predictions import Predictions, PredictionRequest
 from lib.config import Config
 from lib.auth import Authenticate
 from lib.cluster import  Cluster
@@ -36,12 +36,13 @@ app.mount("/_app", StaticFiles(directory="public/_app"), name="_app")
 auth = Authenticate()
 
 cluster = Cluster(config.nodes, config.co2["port"],config.co2["carbon_intensity"])
+cluster.start_async_watcher()
 
 @app.post("/predict",include_in_schema=False)
 async def predict(
     request: Request, 
-):
     prefer: str = Header(None)
+):
     data = await request.json()
     image = data["image"]
     input_data = data["input"]
@@ -56,12 +57,16 @@ async def predict(
         input= input_data,
         started= datetime.datetime.now(),
     )
-    new_prediction.create()
     if prefer == "respond-async":
-
-        external_webhook_url = data["webhook"]
-        return await run_in_threadpool(cluster.queue_prediction, new_prediction)
-
+        print("I HAVE TO RESPOND ASYNC :D ")
+        new_prediction.request = PredictionRequest.asynchronous.value
+        new_prediction.webhook = data["webhook"]
+        print(new_prediction)
+        new_prediction.create()
+        return JSONResponse({"status": "processing", "id": new_prediction.id}, status_code=201)
+        #return await run_in_threadpool(cluster.queue_prediction, new_prediction)
+    
+    new_prediction.create()
     return await run_in_threadpool(cluster.queue_prediction, new_prediction)
 
 @app.post("/image/openapi",include_in_schema=False)

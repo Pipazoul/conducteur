@@ -7,7 +7,10 @@ import time
 from datetime import datetime, timedelta
 from fastapi import HTTPException
 import threading
+from threading import Thread
 import os
+import requests
+import json
 TIMEOUT = float(os.getenv('TIMEOUT', '1'))  # minutes
 
 class Cluster:
@@ -114,10 +117,14 @@ class Cluster:
             node.co2.stop()
             node.state = NodeState.available.value
             prediction.co2 = node.co2.grams_emitted
-            print("CO2 emitted by prediction: ", node.co2.grams_emitted, " grams")
             prediction.node = node.name
             prediction.update()
             result["co2"] = prediction.co2
+            if prediction.webhook is not None:
+                try:
+                    requests.post(prediction.webhook, data = json.dumps(result), headers={'Content-Type': 'application/json'})
+                except Exception as e:
+                    print(f"Failed to send webhook: {e}")
             return result
     
     def queue_openai_spec(self, image: str):
@@ -164,3 +171,26 @@ class Cluster:
             status = NodeState.busy.value
         
         return status
+
+    def start_async_watcher(self):
+        self.thread = Thread(target=self.watch_async_predictions)
+        self.thread.start()
+
+    def watch_async_predictions(self):
+        while True:
+            time.sleep(1)
+            prediction_object = Predictions.get_pending_async()
+            if not prediction_object:
+                continue
+            prediction = Predictions(
+                id = prediction_object['id'],
+                user= prediction_object['user'],
+                input= prediction_object['input'],
+                started= prediction_object['started'],
+                image= prediction_object['image'],
+                status='pending',
+                webhook= prediction_object['webhook'],
+            
+            )
+            print(f"Prediction {prediction}")
+            self.queue_prediction(prediction)
