@@ -67,11 +67,11 @@ class Cog:
             return results
         else:
             print("Failed to run prediction", response)
+            self.node.state = NodeState.available.value
             self.prediction.finished = datetime.now()
             self.prediction.duration = 0
             self.prediction.status = PredictionStatus.failed.value
             self.prediction.update()
-            self.node.state = NodeState.available.value
             return HTTPException(status_code=500, detail=f"Error the container returned a {response.status_code}")
         
     def get_openapi_specs(self):

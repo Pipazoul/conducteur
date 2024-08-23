@@ -10,6 +10,12 @@ services:
       - ./data/id_rsa/conducteur:/root/.ssh/id_rsa
       - ./orchestrator/src/:/app/src/
       - ./data:/app/data
+    # For development purpose to check if thread locks are working 
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1'
+    #       memory: 512M
   dashboard:
     profiles:
       - dev

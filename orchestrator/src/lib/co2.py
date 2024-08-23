@@ -2,6 +2,7 @@ from lib.cog import Cog
 from threading import Thread
 import time
 import json
+import re 
 
 class Co2:
     def __init__(self, cog: Cog, carbon_intensity):
@@ -25,8 +26,9 @@ class Co2:
             power = 0
             result = self.cog.run()
             result = json.loads(result["output"])
-            power = result["power"] # get the power consumption from the output of cog run() function, it's in string format like '22.59 W', so we need to convert it into float type for further calculation
-            power = float(power[:-4])  # remove ' W' at the end of the string, convert it t
+            power = result["power"] # get the power consumption from the output of cog run() function
+            match = re.search(r"\d+\.?\d*", power)  # use regex to extract the number
+            power = float(match.group()) if match else 0  # convert it to float if there is a number, otherwise return 0
             self.watts += power  
             self.duration += 1
             time.sleep(1)
