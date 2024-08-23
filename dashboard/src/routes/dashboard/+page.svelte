@@ -186,7 +186,7 @@
                       {#if prediction.status === 'completed'}
                           <div class="bg-green-500 rounded-full w-2 h-2"></div>
                       {:else if prediction.status === 'pending'}
-                        <div class="bg-blue-500 animate-ping  rounded-full w-2 h-2"></div>
+                        <div class="bg-blue-500 animate-pulse  rounded-full w-2 h-2"></div>
                       {:else if prediction.status === 'running'}
                         <div class="bg-orange-500 animate-pulse  rounded-full w-2 h-2"></div>
                       {:else if prediction.status === 'failed'}

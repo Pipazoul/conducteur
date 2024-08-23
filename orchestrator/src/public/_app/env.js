@@ -1,1 +1,1 @@
-export const env={"PUBLIC_ENV":"dev"}
+export const env={}
