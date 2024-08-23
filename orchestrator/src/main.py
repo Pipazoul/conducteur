@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Header
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -41,6 +41,7 @@ cluster = Cluster(config.nodes, config.co2["port"],config.co2["carbon_intensity"
 async def predict(
     request: Request, 
 ):
+    prefer: str = Header(None)
     data = await request.json()
     image = data["image"]
     input_data = data["input"]
@@ -56,6 +57,11 @@ async def predict(
         started= datetime.datetime.now(),
     )
     new_prediction.create()
+    if prefer == "respond-async":
+
+        external_webhook_url = data["webhook"]
+        return await run_in_threadpool(cluster.queue_prediction, new_prediction)
+
     return await run_in_threadpool(cluster.queue_prediction, new_prediction)
 
 @app.post("/image/openapi",include_in_schema=False)
