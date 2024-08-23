@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { PUBLIC_ENV } from '$env/static/public'
     import { Area, Axis, Bars, Chart, Highlight, LinearGradient, RectClipPath, Svg, Tooltip, TooltipItem } from "layerchart";
     import { scaleBand } from "d3-scale";
     import { onMount } from "svelte";
@@ -14,6 +13,7 @@
       finished: string; // YYYY-MM-DD HH:MM:SS
       duration: number;
       co2: number;
+      request: "asynchronous" | "synchronous";
     }
     
     let filteredPredictions: Prediction[] = [];
@@ -39,15 +39,44 @@
            filter();
        }
     }
-  
-    async function setToken(token: string) {
-        localStorage.setItem('token', token);
-        await getPredictions();
-        filteredPredictions = $predictions;
-        token_modal.close();
+
+    function formatDate(dateString) {
+      try{
+        //split date and time
+        const [dateStr, timeStr] = dateString.split(' ');
+
+        //split year-month-date and hours-minutes-seconds
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const [hours, minutes, seconds] = timeStr.split(':').map(Number);
+
+        //create Date object
+        const date = new Date(year, month - 1, day, hours, minutes, seconds);
+
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffSec = Math.floor(diffMs / 1000);
+        const diffMin = Math.floor(diffSec / 60);
+        const diffHr = Math.floor(diffMin / 60);
+
+        if (diffSec < 60) {
+            return 'less than 1 min';
+        } else if (diffMin < 60) {
+            return diffMin + ' min ago';
+        } else if (diffHr < 24) {
+            return diffHr + ' hours ago';
+        } else {
+            const outputDay = ("0" + day).slice(-2);
+            const outputMonth = ("0" + month).slice(-2);
+            const outputYear = year;
+            const outputHours = ("0" + hours).slice(-2);
+            const outputMinutes = ("0" + minutes).slice(-2);
+            return `${outputDay}/${outputMonth}/${outputYear} - ${outputHours}:${outputMinutes}`;
+        }
+        } catch(err) {
+            return
+        }
     }
-  
-  
+
     async function filter() {
         const now = new Date();
         const durationHours = timeFilters[filterDuration]; // Corrected line
@@ -90,9 +119,6 @@
   </script>
   
   <section>
-    <div class="flex justify-end absolute right-4 top-4">
-        <button class="btn" onclick="token_modal.showModal()">🔑</button>
-    </div>
     <h1 class="text-2xl uppercase font-bold mb-4">🚊 Conducteur Stats</h1>
     <div class="flex space-x-4 pb-4">
         <div>
@@ -159,7 +185,7 @@
           <Tooltip header={(data) => data.user} let:data>
             <TooltipItem label="User" value={data.user} />
             <TooltipItem label="Name" value={data.image.substring(0, 30)+ "..."} />
-            <TooltipItem label="Date" value={data.finished} />
+            <TooltipItem label="Date" value={formatDate(data.finished) || 'N/A'}  />
             <TooltipItem label="duration" value={data.duration} />
             <TooltipItem label="Status" value={data.status} />
           </Tooltip>
@@ -170,6 +196,7 @@
           <table class="table table-xs">
             <thead>
               <tr>
+                  <th>Type</th> 
                   <th>Status</th> 
                   <th>User</th> 
                   <th>Image</th> 
@@ -182,6 +209,11 @@
             <tbody>
               {#each filteredPredictions as prediction}
                 <tr>
+                  {#if prediction.request === 'asynchronous'}
+                    <td>🐌</td>
+                  {:else}
+                    <td>🏃</td>
+                  {/if}
                   <td>
                       {#if prediction.status === 'completed'}
                           <div class="bg-green-500 rounded-full w-2 h-2"></div>
@@ -196,8 +228,8 @@
                       {/if}
                   </td>
                   <td>{prediction.user}</td>
-                  <td>{prediction.image}</td>
-                  <td>{prediction.finished || "No date"}</td>
+                  <td>{prediction.image?.split('@')[0] || prediction.image }</td>
+                  <td>{formatDate(prediction.finished) || "No date"}</td>
                   <td>{prediction.co2 || 0}</td>
                   <td>{prediction.duration || 0}</td>
                   <td><button on:click={deletePrediction(prediction.id)} >❌</button></td>
@@ -208,20 +240,6 @@
         </div>
         {/if}
     </div>
-
-    <!-- Open the modal using ID.showModal() method -->
-    <dialog id="token_modal" class="modal">
-    <div class="modal-box flex flex-col justify-center">
-        <h3 class="font-bold text-lg">Enter your token</h3>
-        <div class="space-x-2 mt-2">
-            <input class="input input-bordered w-full max-w-xs" type="text" bind:value={$token} />
-            <button class="btn" on:click={() => setToken($token)}>Submit</button>
-        </div>
-    </div>
-    <form method="dialog" class="modal-backdrop">
-        <button>close</button>
-    </form>
-    </dialog>
   </section>
   
   

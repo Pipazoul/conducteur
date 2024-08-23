@@ -1,6 +1,6 @@
 services:
   conducteur:
-    image: yassinsiouda/conducteur:dev
+    image: yassinsiouda/conducteur:webhook
     build: ./orchestrator
     ports:
       - "8000:80"

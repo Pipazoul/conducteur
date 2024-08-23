@@ -133,6 +133,17 @@ class Predictions:
         cur.execute("DELETE FROM prediction WHERE id = ?", (id,))
         con.commit()
 
+    # delete all predictions pending with request async
+    @staticmethod
+    def delete_sync_pending():
+        cur.execute("DELETE FROM prediction WHERE status = 'pending' AND request = 'synchronous'")
+        con.commit()
+    
+    # delete all running predictions
+    @staticmethod
+    def delete_running():
+        cur.execute("DELETE FROM prediction WHERE status = 'running'")
+        con.commit()
 
 def return_object(row: tuple):
     if not row:

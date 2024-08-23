@@ -63,9 +63,7 @@ async def predict(
         new_prediction.webhook = data["webhook"]
         print(new_prediction)
         new_prediction.create()
-        return JSONResponse({"status": "processing", "id": new_prediction.id}, status_code=201)
-        #return await run_in_threadpool(cluster.queue_prediction, new_prediction)
-    
+        return JSONResponse({"status": "processing", "id": new_prediction.id}, status_code=201)    
     new_prediction.create()
     return await run_in_threadpool(cluster.queue_prediction, new_prediction)
 

@@ -100,8 +100,11 @@ export async function getNodesState() {
         }
 }
 
-export async function watch(){
+export async function loadToken() {
     token.set(localStorage.getItem('token') || '');
+}
+
+export async function watch(){
     await fetchUsers();
     await getPredictions();
     await getNodesState();

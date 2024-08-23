@@ -14,16 +14,21 @@ images = [
 def send_request(request_id):
     # The URL and headers for the request
     url = 'http://localhost:8000/predict'
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer token'
-        }
     data = json.dumps({
         "image": images[random.randint(0, len(images)-1)] ,
         "input": {
             "prompt": "A hot banana",
-        }
+        },
+        "webhook": "https://webhook"
     })
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer token'
+        }
+    # 50% chance to add "Prefer" header
+    if random.random() < 0.5:
+        headers["Prefer"] = "respond-async"
+
     try:
         start_time = time.time()
         response = requests.post(url, headers=headers, data=data)

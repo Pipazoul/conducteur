@@ -17,6 +17,8 @@ class Cluster:
     def __init__(self, nodes, monitor_port=4560, carbon_intensity=100):
         self.lock = threading.Lock()
         self.nodes = [Node(name=n['name'], user=n['user'], host=n['host'], rsa=n['rsa'], weight=n['weight']) for n in nodes]
+        Predictions.delete_sync_pending()
+        Predictions.delete_running()
         for node in self.nodes:
             node.connect()
             # setup co2 monitor for that node
