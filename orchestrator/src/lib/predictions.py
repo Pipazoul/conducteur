@@ -2,6 +2,7 @@ from enum import Enum
 from threading import Lock
 import sqlite3
 import json
+import logging
 con = sqlite3.connect("/app/data/conducteur.db", check_same_thread=False)
 cur = con.cursor()
 
@@ -31,6 +32,7 @@ class Predictions:
                 request:PredictionRequest = PredictionRequest.synchronous.value,
                 webhook:str = None,
             ):
+            logging.debug("🧠 Creating prediction object")
             self.id = id  # will be set by the database when inserting a new row.
             self.user = user
             self.image = image
@@ -63,7 +65,7 @@ class Predictions:
             ''')
             
     def create(self):
-        print('Creating new Prediction')
+        logging.debug("🧠 Creating prediction")
         print('self.request', self.request)
         cur.execute("INSERT INTO prediction (user, image, input, status, started, node, finished, duration, request, logs, webhook) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (self.user, self.image, json.dumps(self.input), self.status, self.started, self.node, self.finished, self.duration, self.request, self.logs, self.webhook))
@@ -72,6 +74,7 @@ class Predictions:
         
          
     def update(self):
+        logging.debug("🧠 Updating prediction")
         with self._lock:
             if self.status == PredictionStatus.completed.value or self.status == PredictionStatus.failed.value:
                 self.input = {}
@@ -82,6 +85,7 @@ class Predictions:
 
     @staticmethod
     def filter_by_user(user: str):
+        logging.debug("🧠 Fetching predictions by user")
         cur.execute("SELECT * FROM prediction WHERE user = ?", (user, ))
         response = cur.fetchall()
         data = []
@@ -96,10 +100,12 @@ class Predictions:
 
     
     def get_one(self, id: int):
+        logging.debug(f"🧠 Fetching prediction with id {id}")
         cur.execute("SELECT * FROM prediction WHERE id = ?", (id,))
     
     @staticmethod
     def get_all():
+        logging.debug("🧠 Fetching all predictions")
         cur.execute('''SELECT * FROM prediction ''')
         response = cur.fetchall()
         data = []
@@ -110,6 +116,7 @@ class Predictions:
         return data
     @staticmethod
     def get_pending_async():
+        logging.debug("🧠 Fetching pending asynchronous predictions")
         cur.execute("SELECT * FROM prediction WHERE status = 'pending' AND request = 'asynchronous' ORDER BY started ASC LIMIT 1")
         response = cur.fetchone()
 
@@ -122,6 +129,7 @@ class Predictions:
     # get one prediction by id
     @staticmethod
     def get(id: int):
+        logging.debug(f"🧠 Fetching prediction with id {id}")
         cur.execute("SELECT * FROM prediction WHERE id = ?", (id,))
         row = cur.fetchone()
         if not row:
@@ -130,22 +138,26 @@ class Predictions:
     # delete one prediction by id
     @staticmethod
     def delete(id: int):
+        logging.debug(f"🧠 Deleting prediction with id {id}")
         cur.execute("DELETE FROM prediction WHERE id = ?", (id,))
         con.commit()
 
     # delete all predictions pending with request async
     @staticmethod
     def delete_sync_pending():
+        logging.debug("🧠 Deleting all pending synchronous predictions")
         cur.execute("DELETE FROM prediction WHERE status = 'pending' AND request = 'synchronous'")
         con.commit()
     
     # delete all running predictions
     @staticmethod
     def delete_running():
+        logging.debug("🧠 Deleting all running predictions")
         cur.execute("DELETE FROM prediction WHERE status = 'running'")
         con.commit()
 
 def return_object(row: tuple):
+    
     if not row:
         return None
     return {

@@ -11,10 +11,13 @@ from threading import Thread
 import os
 import requests
 import json
+import logging
+
 TIMEOUT = float(os.getenv('TIMEOUT', '1'))  # minutes
 
 class Cluster:
     def __init__(self, nodes, monitor_port=4560, carbon_intensity=100):
+        logging.debug(f"🌕 Cluster initialized with {len(nodes)} nodes")
         self.lock = threading.Lock()
         self.nodes = [Node(name=n['name'], user=n['user'], host=n['host'], rsa=n['rsa'], weight=n['weight']) for n in nodes]
         Predictions.delete_sync_pending()
@@ -26,11 +29,12 @@ class Cluster:
             co2 = self.setup_monitor_container(node, port=monitor_port, carbon_intensity=carbon_intensity)
             node.co2 = co2
     def disconnect_all(self):
+        logging.debug("🌕 Disconnecting all nodes")
         for node in self.nodes:
             node.disconnect()
     
     def select_node(self):
-        print('Selecting node...')
+        logging.debug("🌕 Selecting a node")
         available = None
         # sort nodes by weight by the uppest and return the first one that is available
         self.nodes = sorted(self.nodes, key=lambda n: n.weight, reverse=True)
@@ -46,7 +50,7 @@ class Cluster:
 
     def wait_node(self):
         with self.lock:
-            print("Waiting for a available node...")
+            logging.debug("🌕 Waiting for a available node")
             start_time = datetime.now()
             while datetime.now() - start_time < timedelta(minutes=TIMEOUT):
                 print("Waiting for a available node...")
@@ -57,6 +61,7 @@ class Cluster:
             raise HTTPException(status_code=503, detail="No available nodes")
 
     def setup_container(self, node, image, port=None):
+        logging.debug("🌕 Setting up a new container on node %s for image %s" % (node.name, image))
         with self.lock:
             print("Setting up a new container on node", node.name, "for image", image)
             docker = Docker(node.client)
@@ -74,6 +79,7 @@ class Cluster:
             return container
     
     def setup_monitor_container(self, node, port, carbon_intensity):
+        logging.debug("🌕 Setting up a new monitor container on node %s for carbon intensity %d" % (node.name, carbon_intensity))
         image = "yassinsiouda/cog-gpu-monitor:latest"
         container =  self.setup_container(node, image, port)
     
@@ -96,7 +102,7 @@ class Cluster:
     
 
     def queue_prediction(self, prediction: Predictions):
-        print("Queueing prediction...")
+        logging.debug("🌕 Queueing prediction")
         image = prediction.image
         # wait for a available node
         node = self.wait_node()
@@ -130,7 +136,7 @@ class Cluster:
             return result
     
     def queue_openai_spec(self, image: str):
-        print("Queueing openai spec...")
+        logging.debug("🌕 Queueing openai spec")
         # wait for a available node
         node = self.wait_node()
         print("Node selected", node.name)
@@ -153,6 +159,7 @@ class Cluster:
 
     
     def global_status(self):
+        logging.debug("🌕 Checking global status")
         # Initialize variables
         status = NodeState.unknown.value
         all_busy = True
@@ -175,10 +182,12 @@ class Cluster:
         return status
 
     def start_async_watcher(self):
+        logging.debug("🌕 Starting async watcher")
         self.thread = Thread(target=self.watch_async_predictions)
         self.thread.start()
 
     def watch_async_predictions(self):
+        logging.debug("🌕 Watching async predictions")
         while True:
             time.sleep(1)
             prediction_object = Predictions.get_pending_async()

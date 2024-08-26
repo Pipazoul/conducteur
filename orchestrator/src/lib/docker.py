@@ -3,12 +3,13 @@ import docker.types
 from fastapi import HTTPException
 import os
 import time
-
+import logging
 
 class Docker:
     def __init__(self, client):
         self.client = client
     def stop_containers(self):
+        logging.debug("🐋 Stopping containers")
         print("Stopping containers")
         for container in self.client.containers.list():
             ports = container.attrs["NetworkSettings"]["Ports"]
@@ -20,7 +21,7 @@ class Docker:
                 return
 
     def start_or_restart_container(self,container):
-        print("Starting or restarting containers")
+        logging.debug("🐋 Starting or restarting containers")
         if container.status == "exited":
             self.stop_containers()
             container.start()
@@ -28,14 +29,14 @@ class Docker:
         return container
     
     def get_container_by_image(self,image):
-        print("Getting containers by image")
+        logging.debug("🐋 Getting containers by image")
         for container in self.client.containers.list(all=True):
             if container.attrs["Config"]["Image"] == image:
                 return container
         return None
 
     def run_container(self, image, timeout=30, port=None):
-        print("Running containers")
+        logging.debug("🐋 Running containers")
         self.stop_containers()
         if not port:
             port = random.randint(6000, 6600)
@@ -74,5 +75,5 @@ class Docker:
 
     
     def get_container(self,container_id):
-        print("Getting containers")
+        logging.debug("🐋 Getting containers")
         return self.client.containers.get(container_id)

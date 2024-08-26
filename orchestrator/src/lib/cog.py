@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 import time
 import requests
 import os
+import logging
+
 TIMEOUT = float(os.getenv('TIMEOUT', '1'))  # minutes
 
 
@@ -11,7 +13,7 @@ from lib.predictions import Predictions, PredictionStatus
 from lib.nodes import NodeState
 class Cog:
     def __init__(self, node, prediction: Predictions, container):
-        print("Cog init")
+        logging.debug("📦 Cog init start")
         self.node = node
         self.prediction = prediction
         self.container = container
@@ -24,7 +26,7 @@ class Cog:
                 self.port = port_info["HostPort"]
     
     def health_check(self):
-        print(f'Checking health of {self.host}:{self.port}')
+        logging.debug(f'📦 Checking health of {self.host}:{self.port}')
         start_time = datetime.now()
         while datetime.now() - start_time < timedelta(minutes=TIMEOUT):
             try:
@@ -47,7 +49,7 @@ class Cog:
         self.prediction.update()
         raise HTTPException(status_code=403, detail="The health_check timed out check your container logs for more information")
     def run(self):
-        print(f'Running prediction {self.host}:{self.port}')
+        logging.debug(f'📦 Running prediction {self.host}:{self.port}')
         header = {
             "Content-Type": "application/json",
         }
@@ -75,7 +77,7 @@ class Cog:
             return HTTPException(status_code=500, detail=f"Error the container returned a {response.status_code}")
         
     def get_openapi_specs(self):
-        print(f'Getting open api specs {self.host}:{self.port}')
+        logging.debug(f'📦 Getting open api specs {self.host}:{self.port}')
         response = requests.get(f"http://{self.host}:{self.port}/openapi.json",timeout=TIMEOUT*60)
         if response.status_code == 200:
             results = response.json()

@@ -14,6 +14,13 @@ import json
 import datetime
 import os
 
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logging.getLogger().setLevel(level=os.getenv('LOGS', 'INFO').upper())
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("docker").setLevel(logging.WARNING)
+
 
 config = Config()
 cors_origins = os.getenv("API_CORS_ORIGIN").split(",")
@@ -38,6 +45,8 @@ auth = Authenticate()
 cluster = Cluster(config.nodes, config.co2["port"],config.co2["carbon_intensity"])
 cluster.start_async_watcher()
 
+logging.info("🚦 Started server")
+
 @app.post("/predict",include_in_schema=False)
 async def predict(
     request: Request, 
@@ -58,12 +67,13 @@ async def predict(
         started= datetime.datetime.now(),
     )
     if prefer == "respond-async":
-        print("I HAVE TO RESPOND ASYNC :D ")
+        logging.debug("🐌 Responding asynchronously")
         new_prediction.request = PredictionRequest.asynchronous.value
         new_prediction.webhook = data["webhook"]
         print(new_prediction)
         new_prediction.create()
         return JSONResponse({"status": "processing", "id": new_prediction.id}, status_code=201)    
+    logging.debug("🏃 Responding synchronously")
     new_prediction.create()
     return await run_in_threadpool(cluster.queue_prediction, new_prediction)
 
@@ -77,6 +87,7 @@ async def get_image_openapi(
     Authenticate.verify_existing_token(token)
     Authenticate.verify_image_scope(token, image)
 
+    logging.debug("HTTP A new OpenAPI request received")
     return await run_in_threadpool(cluster.queue_openai_spec, image)
 
 
@@ -86,7 +97,7 @@ async def status(
 ):
     token = Authenticate.extract_token(request)
     Authenticate.verify_existing_token(token)
-
+    logging.debug("Status check requested")
     return {"status": cluster.global_status()}
 
 
@@ -98,6 +109,7 @@ async def list_predictions(
     Authenticate.verify_existing_token(token)
     Authenticate.verify_token_admin(token)
     predictions = Predictions.get_all()
+    logging.debug("HTTP List of predictions requested")
     return(predictions)
 
 # delete prediction by id
@@ -115,6 +127,7 @@ async def delete_prediction(
         raise HTTPException(status_code=404, detail="Prediction not found")
         
     Predictions.delete(id)
+    logging.debug("Prediction deleted")
     return {"message": "Prediction deleted"}
 
 @app.get("/tokens",include_in_schema=False)
@@ -124,6 +137,7 @@ async def list_tokens(
     token = Authenticate.extract_token(request)
     Authenticate.verify_existing_token(token)
     Authenticate.verify_token_admin(token)
+    logging.debug("HTTP List of tokens requested")
     return Authenticate.get_all_tokens()
 
 @app.get("/users",include_in_schema=False)
@@ -133,6 +147,7 @@ async def list_users(
     token = Authenticate.extract_token(request)
     Authenticate.verify_existing_token(token)
     Authenticate.verify_token_admin(token)
+    logging.debug("HTTP List of users requested")
     return Authenticate.get_all_users()
 
 
@@ -142,6 +157,7 @@ async def return_user(
 ):
     token = Authenticate.extract_token(request)
     Authenticate.verify_existing_token(token)
+    logging.debug("HTTP User requested")
     return Authenticate.get_user(token)
 
 
@@ -156,6 +172,7 @@ async def list_users(
     Authenticate.verify_token_user(token,user)
     data = await request.json()
     user = data["user"]
+    logging.debug("HTTP User's Predictions requested")
     return Predictions.filter_by_user(user)
 
 @app.get("/nodes",include_in_schema=False)
@@ -168,13 +185,16 @@ async def list_nodes(
     nodes = []
     for node in cluster.nodes:
         nodes.append({'name': node.name, 'host': node.host, 'weight': node.weight, 'state': node.state })
+    logging.debug("HTTP List of nodes requested")
     return nodes
 
 # Frontend routes for Svelte app
 @app.get("/dashboard", response_class=FileResponse)
 async def main():
+    logging.debug("HTTP Dashboard requested")
     return "public/index.html"
 
 @app.get("/dashboard/_app/{path}", response_class=FileResponse)
 async def main(path):
+    logging.debug("HTTP Dashboard requested")
     return "public/_app/" + path
