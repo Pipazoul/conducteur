@@ -62,21 +62,20 @@ class Cluster:
 
     def setup_container(self, node, image, port=None):
         logging.debug("🌕 Setting up a new container on node %s for image %s" % (node.name, image))
-        with self.lock:
-            print("Setting up a new container on node", node.name, "for image", image)
-            docker = Docker(node.client)
-            print('Check if image exists in the node')
-            container = docker.get_container_by_image(image)
-            if not container:
-                print('Image not found on the node run pull')
-                if not port:
-                    container = docker.run_container(image)
-                else:
-                    container = docker.run_container(image, port=port)
+        print("Setting up a new container on node", node.name, "for image", image)
+        docker = Docker(node.client)
+        print('Check if image exists in the node')
+        container = docker.get_container_by_image(image)
+        if not container:
+            print('Image not found on the node run pull')
+            if not port:
+                container = docker.run_container(image)
             else:
-                print('Image found on the node run start')
-                container = docker.start_or_restart_container(container)
-            return container
+                container = docker.run_container(image, port=port)
+        else:
+            print('Image found on the node run start')
+            container = docker.start_or_restart_container(container)
+        return container
     
     def setup_monitor_container(self, node, port, carbon_intensity):
         logging.debug("🌕 Setting up a new monitor container on node %s for carbon intensity %d" % (node.name, carbon_intensity))
@@ -109,31 +108,41 @@ class Cluster:
         node.state = NodeState.busy.value
         # setup the docker container on that node and get it ready for use
         container = self.setup_container(node, image)
-        
+        logging.debug("🌕 Container setup on the node %s" % (node.name))
         # check is is string
         if isinstance(container, Exception):
             node.state = NodeState.available.value
             prediction.status = PredictionStatus.failed.value
             prediction.update()
-            raise container
+            logging.debug("🌕 Failed to set up prediction container")
+            return container
         # create a new Cog (container object) and run the prediction on it
         cog = Cog(node, prediction, container)
         health = cog.health_check()
         if health:
             node.co2.start()
+            logging.debug("🌕 Running prediction")
             result = cog.run()
+            logging.debug("🌕 Prediction finished")
             node.co2.stop()
+            logging.debug("🌕 Saving results")
             node.state = NodeState.available.value
             prediction.co2 = node.co2.grams_emitted
             prediction.node = node.name
+            logging.debug("🌕 Results saved")
             prediction.update()
             result["co2"] = prediction.co2
             if prediction.webhook is not None:
+                logging.debug("🌕 Sending webhook")
                 try:
                     requests.post(prediction.webhook, data = json.dumps(result), headers={'Content-Type': 'application/json'})
+                    logging.debug("🌕 Webhook sent")
                 except Exception as e:
+                    logging.error("🌕 Failed to send webhook")
                     print(f"Failed to send webhook: {e}")
             return result
+        logging.debug("🌕 Prediction container is not ready")
+        node.state = NodeState.available.value
     
     def queue_openai_spec(self, image: str):
         logging.debug("🌕 Queueing openai spec")
@@ -189,19 +198,23 @@ class Cluster:
     def watch_async_predictions(self):
         logging.debug("🌕 Watching async predictions")
         while True:
-            time.sleep(1)
-            prediction_object = Predictions.get_pending_async()
-            if not prediction_object:
-                continue
-            prediction = Predictions(
-                id = prediction_object['id'],
-                user= prediction_object['user'],
-                input= prediction_object['input'],
-                started= prediction_object['started'],
-                image= prediction_object['image'],
-                status='pending',
-                webhook= prediction_object['webhook'],
-            
-            )
-            print(f"Prediction {prediction}")
-            self.queue_prediction(prediction)
+            try:
+                time.sleep(1)
+                prediction_object = Predictions.get_pending_async()
+                logging.debug("🌕 Predictions left: %s", len(prediction_object))
+                if not prediction_object:
+                    continue
+                prediction = Predictions(
+                    id = prediction_object['id'],
+                    user= prediction_object['user'],
+                    input= prediction_object['input'],
+                    started= prediction_object['started'],
+                    image= prediction_object['image'],
+                    status='pending',
+                    webhook= prediction_object['webhook'],
+                
+                )
+                print(f"Prediction {prediction}")
+                self.queue_prediction(prediction)
+            except Exception as e:
+                logging.debug("🌕 Error in async watcher: %s", str(e))

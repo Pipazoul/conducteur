@@ -13,6 +13,7 @@ images = [
 
 def send_request(request_id):
     # The URL and headers for the request
+    # the prompt is explicitly choosed to randomly trigger nsfw detection and trigger an error on cog prediction side
     url = 'http://localhost:8000/predict'
     data = json.dumps({
         "image": images[random.randint(0, len(images)-1)] ,
@@ -51,4 +52,4 @@ def benchmark_requests(n):
 
     
 if __name__ == "__main__":
-    benchmark_requests(50)
+    benchmark_requests(500)

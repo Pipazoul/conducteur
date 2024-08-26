@@ -65,7 +65,7 @@ class Predictions:
             ''')
             
     def create(self):
-        logging.debug("🧠 Creating prediction")
+        logging.debug("🧠 Creating prediction with id: %s", self.id)
         print('self.request', self.request)
         cur.execute("INSERT INTO prediction (user, image, input, status, started, node, finished, duration, request, logs, webhook) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (self.user, self.image, json.dumps(self.input), self.status, self.started, self.node, self.finished, self.duration, self.request, self.logs, self.webhook))
@@ -74,8 +74,12 @@ class Predictions:
         
          
     def update(self):
-        logging.debug("🧠 Updating prediction")
         with self._lock:
+            logging.debug("🧠 Updating prediction with id: %s", self.id)
+            if self.id is None:
+                #TODO:  mainly caused by co2 monitoring creating a prediction without an id 
+                print("🧠 Error updating prediction, id is None.")
+                return ValueError("Prediction does not exist")
             if self.status == PredictionStatus.completed.value or self.status == PredictionStatus.failed.value:
                 self.input = {}
             cur.execute(
@@ -85,7 +89,7 @@ class Predictions:
 
     @staticmethod
     def filter_by_user(user: str):
-        logging.debug("🧠 Fetching predictions by user")
+        logging.debug("🧠 Fetching predictions by user %s", user)
         cur.execute("SELECT * FROM prediction WHERE user = ?", (user, ))
         response = cur.fetchall()
         data = []
